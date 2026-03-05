@@ -261,325 +261,337 @@
 <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
 
 <script>
-    // CONFIGURACIÓN FIREBASE
-    const firebaseConfig = {
-        apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
-        authDomain: "h-essence-shop.firebaseapp.com",
-        databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
-        projectId: "h-essence-shop",
-        storageBucket: "h-essence-shop.firebasestorage.app",
-        messagingSenderId: "128450401838",
-        appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+// --- CONFIGURACIÓN FIREBASE (Mantén tus credenciales) ---
+const firebaseConfig = {
+    apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
+    authDomain: "h-essence-shop.firebaseapp.com",
+    databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
+    projectId: "h-essence-shop",
+    storageBucket: "h-essence-shop.firebasestorage.app",
+    messagingSenderId: "128450401838",
+    appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+};
+
+firebase.initializeApp(firebaseConfig);
+const rdb = firebase.database();
+const auth = firebase.auth();
+
+const TEL_WHATSAPP = "18097530456";
+let estaGirando = false;
+let currentImg = "";
+let esAdmin = false;
+
+let db = {
+    productos: [],
+    nombreTienda: "H-ESSENCE",
+    slogan: "Luxury Perfumery RD",
+    logo: "",
+    ruletaVisible: false,
+    premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"],
+    tipos: ["win", "lose", "win", "lose"],
+    colorTextoRuleta: "#FFFFFF",
+    colorFlecha: "#1A1A1A"
+};
+
+// --- SEGURIDAD ---
+auth.signInWithEmailAndPassword("joel_ahg13@hotmail.com", "jh3n0E40*")
+.then(() => {
+    esAdmin = true;
+    document.getElementById('toggle-view').style.display = "block";
+    document.getElementById('panel-admin').style.display = "block";
+    document.getElementById('seccion-cliente').classList.add('hidden');
+    actualizarUIHeader();
+}).catch(err => console.log("Modo Cliente: ", err));
+
+// --- SINCRONIZACIÓN TIEMPO REAL ---
+rdb.ref('catalogo_v2').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        db = data;
+        if(!db.productos) db.productos = [];
+        actualizarUIHeader();
+        actualizarColorFlecha(db.colorFlecha);
+        dibujarRuleta(); 
+        render(); 
+        cargarInputsAdmin();
+    }
+});
+
+// --- FUNCIÓN MAESTRA: GUARDAR PRODUCTO ---
+function procesarProducto() {
+    const idInput = document.getElementById('edit-id').value;
+    const nombre = document.getElementById('nombre').value;
+    
+    if(!nombre) return mostrarAlerta("❌ Nombre requerido", "error");
+
+    let ozValue = document.getElementById('onzas').value;
+    if(ozValue && !ozValue.toLowerCase().includes('oz') && !ozValue.toLowerCase().includes('ml')) {
+        ozValue += " oz";
+    }
+
+    const p = {
+        id: idInput ? parseInt(idInput) : Date.now(),
+        ref: document.getElementById('referencia').value || "S/R",
+        nombre: nombre,
+        onzas: ozValue || "N/A",
+        dispo: document.getElementById('disponibilidad').value, // "inmediata" o "pedido"
+        venta: parseFloat(document.getElementById('venta').value) || 0,
+        costo: parseFloat(document.getElementById('costo').value) || 0,
+        stock: parseInt(document.getElementById('stock-cantidad').value) || 0,
+        img: currentImg || "https://via.placeholder.com/300"
     };
 
-    firebase.initializeApp(firebaseConfig);
-    const rdb = firebase.database();
-    const auth = firebase.auth();
+    if(idInput) {
+        const i = db.productos.findIndex(x => x.id === p.id);
+        if(i !== -1) db.productos[i] = p;
+    } else {
+        db.productos.push(p);
+    }
 
-    const TEL_WHATSAPP = "18097530456";
-    let estaGirando = false;
-    let currentImg = "";
-    let esAdmin = false; // Por defecto es cliente
+    resetForm();
+    render();
+    mostrarAlerta("✅ Añadido a la lista local");
+}
 
-    let db = {
-        productos: [],
-        nombreTienda: "H-ESSENCE",
-        slogan: "Luxury Perfumery RD",
-        logo: "",
-        ruletaVisible: false,
-        premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"],
-        tipos: ["win", "lose", "win", "lose"],
-        colorTextoRuleta: "#FFFFFF",
-        colorFlecha: "#1A1A1A"
-    };
+function guardarTodoFirebase() {
+    // Sincronizar inputs de configuración a la variable global db
+    db.nombreTienda = document.getElementById('input-shop-name').value;
+    db.slogan = document.getElementById('input-shop-slogan').value;
+    db.ruletaVisible = document.getElementById('ruleta-visible-check').checked;
+    db.colorTextoRuleta = document.getElementById('wheel-text-color').value;
+    db.colorFlecha = document.getElementById('wheel-arrow-color').value;
+    
+    db.premios = [
+        document.getElementById('p1').value || "P1",
+        document.getElementById('p2').value || "P2",
+        document.getElementById('p3').value || "P3",
+        document.getElementById('p4').value || "P4"
+    ];
+    
+    db.tipos = [
+        document.getElementById('t1').value,
+        document.getElementById('t2').value,
+        document.getElementById('t3').value,
+        document.getElementById('t4').value
+    ];
 
-    // SEGURIDAD: LOGIN PARA MOSTRAR PANEL
-    auth.signInWithEmailAndPassword("joel_ahg13@hotmail.com", "jh3n0E40*")
-    .then(() => {
-        console.log("Acceso Admin detectado.");
-        document.getElementById('toggle-view').style.display = "block";
-        // Si quieres que al entrar tú veas el admin de una vez:
-        esAdmin = true;
-        document.getElementById('panel-admin').style.display = "block";
-        document.getElementById('seccion-cliente').classList.add('hidden');
-        document.getElementById('toggle-view').innerText = "👁️ Vista: Administrador";
-    })
-    .catch(() => {
-        console.log("Modo Cliente Activo.");
+    rdb.ref('catalogo_v2').set(db)
+    .then(() => mostrarAlerta("🚀 ¡Nube Actualizada con Éxito!"))
+    .catch(err => alert("Error: " + err.message));
+}
+
+// --- UTILIDADES DE INTERFAZ ---
+function resetForm() {
+    document.getElementById('edit-id').value = "";
+    ['referencia','nombre','onzas','venta','costo','stock-cantidad'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = id === 'stock-cantidad' ? "1" : "";
     });
+    document.getElementById('disponibilidad').value = "inmediata";
+    quitarFoto();
+    document.getElementById('btn-add').classList.remove('hidden');
+    document.getElementById('btn-update').classList.add('hidden');
+    updateLivePreview();
+}
 
-    // SINCRONIZACIÓN FIREBASE
-    rdb.ref('catalogo_v2').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            db = data;
-            actualizarUIHeader();
-            actualizarColorFlecha(db.colorFlecha);
-            dibujarRuleta(); 
-            render(); 
-            updateLivePreview();
-            cargarInputsAdmin();
-        }
-    });
+function render() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const tabla = document.getElementById('tabla-body');
+    const catalogo = document.getElementById('catalogo-container');
+    
+    tabla.innerHTML = ""; 
+    catalogo.innerHTML = "";
+    
+    document.getElementById('box-ruleta-cliente').classList.toggle('hidden', !db.ruletaVisible);
 
-    function guardarTodoFirebase() {
-        // Recoger datos de los inputs antes de enviar
-        db.nombreTienda = document.getElementById('input-shop-name').value;
-        db.slogan = document.getElementById('input-shop-slogan').value;
-        db.ruletaVisible = document.getElementById('ruleta-visible-check').checked;
-        db.colorTextoRuleta = document.getElementById('wheel-text-color').value;
-        db.colorFlecha = document.getElementById('wheel-arrow-color').value;
-        db.premios = [
-            document.getElementById('p1').value || "P1",
-            document.getElementById('p2').value || "P2",
-            document.getElementById('p3').value || "P3",
-            document.getElementById('p4').value || "P4"
-        ];
-        db.tipos = [
-            document.getElementById('t1').value,
-            document.getElementById('t2').value,
-            document.getElementById('t3').value,
-            document.getElementById('t4').value
-        ];
-
-        rdb.ref('catalogo_v2').set(db)
-        .then(() => mostrarAlerta("✅ Guardado en la Nube correctamente"))
-        .catch(err => alert("Error de permisos: " + err.message));
-    }
-
-    function cargarInputsAdmin() {
-        if(!esAdmin) return;
-        document.getElementById('input-shop-name').value = db.nombreTienda;
-        document.getElementById('input-shop-slogan').value = db.slogan;
-        document.getElementById('ruleta-visible-check').checked = db.ruletaVisible;
-        document.getElementById('wheel-text-color').value = db.colorTextoRuleta;
-        document.getElementById('wheel-arrow-color').value = db.colorFlecha;
-        for(let i=0; i<4; i++) {
-            document.getElementById('p'+(i+1)).value = db.premios[i];
-            document.getElementById('t'+(i+1)).value = db.tipos[i];
-        }
-    }
-
-    function mostrarAlerta(msg, tipo = "exito") {
-        const toast = document.getElementById('toast-alert');
-        toast.innerText = msg;
-        toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 3000);
-    }
-
-    function actualizarUIHeader() {
-        document.getElementById('shop-name-display').innerText = db.nombreTienda || "H-ESSENCE";
-        document.getElementById('shop-slogan-display').innerText = db.slogan || "Luxury Perfumery RD";
-        if(db.logo) {
-            const logoHeader = document.getElementById('shop-logo-header');
-            logoHeader.src = db.logo;
-            logoHeader.style.display = "inline-block";
-            document.getElementById('bg-logo').src = db.logo;
-        }
-    }
-
-    function actualizarColorFlecha(color) {
-        const flecha = document.getElementById('flecha-cliente');
-        if(flecha) flecha.style.borderTopColor = color;
-    }
-
-    function handleFile(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            currentImg = e.target.result; 
-            document.getElementById('drop-text').innerText = "✅ Imagen Lista"; 
-            document.getElementById('btn-del-img').style.display = "block";
-            updateLivePreview();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function quitarFoto(e) {
-        if(e) e.stopPropagation();
-        currentImg = "";
-        document.getElementById('drop-text').innerText = "📸 Arrastra o selecciona foto aquí";
-        document.getElementById('btn-del-img').style.display = "none";
-        document.getElementById('foto-input').value = "";
-        updateLivePreview();
-    }
-
-    function subirLogo(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            db.logo = e.target.result; 
-            actualizarUIHeader();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function updateLivePreview() {
-        const preview = document.getElementById('live-preview');
-        const n = document.getElementById('nombre').value || "Nombre";
-        const v = document.getElementById('venta').value || "0";
-        let o = document.getElementById('onzas').value;
-        const disp = document.getElementById('disponibilidad').value;
-        if(o && !o.toLowerCase().includes('oz') && !o.toLowerCase().includes('ml')) o += " oz";
-
-        const badgeStock = disp === 'inmediata' ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>' : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
-        const img = currentImg || "https://via.placeholder.com/300";
+    db.productos.forEach(p => {
+        const ganancia = p.venta - p.costo;
+        const badgeT = p.dispo === 'inmediata' ? '<span class="badge-dispo bg-inmediata">Inmediata</span>' : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
         
-        preview.innerHTML = `
+        // Render Tabla Admin
+        tabla.innerHTML += `<tr>
+            <td>${p.ref}</td><td>${p.nombre}</td><td>${p.onzas}</td><td>${badgeT}</td>
+            <td><b>${p.stock}</b></td><td>$${p.costo}</td><td>$${p.venta}</td>
+            <td style="color:green">$${ganancia}</td>
+            <td><button onclick="editar(${p.id})">✏️</button> <button onclick="borrar(${p.id})">🗑️</button></td>
+        </tr>`;
+        
+        // Render Catálogo Cliente
+        if(p.nombre.toLowerCase().includes(query) || p.ref.toLowerCase().includes(query)) {
+            const wsMsg = `Hola, me interesa: *${p.nombre}* (${p.onzas}) - RD$ ${p.venta}`;
+            catalogo.innerHTML += `
             <div class="card">
-                ${badgeStock}
-                ${o ? `<span class="badge-size">${o}</span>` : ''}
-                <img src="${img}">
-                <h3>${n}</h3>
-                <p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p>
+                <span class="badge-dispo ${p.dispo === 'inmediata' ? 'bg-inmediata' : 'bg-pedido'} badge-card-dispo">
+                    ${p.dispo === 'inmediata' ? 'Inmediata' : 'Pedido'}
+                </span>
+                <span class="badge-size">${p.onzas}</span>
+                <img src="${p.img}">
+                <h3>${p.nombre}</h3>
+                <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta}</p>
+                <a href="https://wa.me/${TEL_WHATSAPP}?text=${encodeURIComponent(wsMsg)}" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">WhatsApp</a>
             </div>`;
-    }
-
-    function procesarProducto() {
-        const id = document.getElementById('edit-id').value;
-        let ozValue = document.getElementById('onzas').value;
-        if(ozValue && !ozValue.toLowerCase().includes('oz') && !ozValue.toLowerCase().includes('ml')) ozValue += " oz";
-
-        const p = {
-            id: id ? parseInt(id) : Date.now(),
-            ref: document.getElementById('referencia').value || "S/R",
-            nombre: document.getElementById('nombre').value,
-            onzas: ozValue || "N/A",
-            dispo: document.getElementById('disponibilidad').value,
-            venta: parseFloat(document.getElementById('venta').value) || 0,
-            costo: parseFloat(document.getElementById('costo').value) || 0,
-            stock: parseInt(document.getElementById('stock-cantidad').value) || 0,
-            img: currentImg || "https://via.placeholder.com/300"
-        };
-
-        if(!p.nombre) return mostrarAlerta("❌ Nombre requerido", "error");
-
-        if(id) {
-            const i = db.productos.findIndex(x => x.id === p.id);
-            db.productos[i] = p;
-        } else {
-            db.productos.push(p);
         }
-        resetForm();
-        render();
-        mostrarAlerta("Producto en lista (Dale a Guardar en la Nube)");
-    }
+    });
+}
 
-    function resetForm() {
-        document.getElementById('edit-id').value = "";
-        ['referencia','nombre','onzas','venta','costo','stock-cantidad'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = id === 'stock-cantidad' ? "1" : "";
-        });
-        document.getElementById('disponibilidad').value = "inmediata";
-        quitarFoto();
-        document.getElementById('btn-add').classList.remove('hidden');
-        document.getElementById('btn-update').classList.add('hidden');
+function editar(id) {
+    const p = db.productos.find(x => x.id === id);
+    if(!p) return;
+    document.getElementById('edit-id').value = p.id;
+    document.getElementById('referencia').value = p.ref;
+    document.getElementById('nombre').value = p.nombre;
+    document.getElementById('onzas').value = p.onzas;
+    document.getElementById('disponibilidad').value = p.dispo;
+    document.getElementById('venta').value = p.venta;
+    document.getElementById('costo').value = p.costo;
+    document.getElementById('stock-cantidad').value = p.stock;
+    currentImg = p.img;
+    document.getElementById('btn-add').classList.add('hidden');
+    document.getElementById('btn-update').classList.remove('hidden');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    updateLivePreview();
+}
+
+// --- ZOOM DEL ESLOGAN ---
+const sloganDisp = document.getElementById('shop-slogan-display');
+let escala = 1;
+window.addEventListener('wheel', (e) => {
+    if (e.ctrlKey && sloganDisp) {
+        e.preventDefault();
+        escala += e.deltaY * -0.001;
+        escala = Math.min(Math.max(0.5, escala), 2.5);
+        sloganDisp.style.transform = `scale(${escala})`;
+        sloganDisp.style.display = "inline-block";
+    }
+}, { passive: false });
+
+// --- FUNCIONES RESTANTES (Logo, Ruleta, etc.) ---
+function subirLogo(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { db.logo = e.target.result; actualizarUIHeader(); };
+    reader.readAsDataURL(file);
+}
+
+function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => { 
+        currentImg = e.target.result; 
+        document.getElementById('drop-text').innerText = "✅ Imagen Lista";
+        document.getElementById('btn-del-img').style.display = "block";
         updateLivePreview();
-    }
+    };
+    reader.readAsDataURL(file);
+}
 
-    function dibujarRuleta() {
-        const canvas = document.getElementById('canvas-ruleta');
-        if(!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const colores = ["#D4AF37", "#1A1A1A", "#D4AF37", "#1A1A1A"];
-        ctx.clearRect(0,0,300,300);
-        for(let i=0; i<4; i++){
-            ctx.beginPath(); ctx.fillStyle = colores[i]; ctx.moveTo(150,150);
-            ctx.arc(150,150,140, i * Math.PI/2, (i+1) * Math.PI/2); ctx.fill();
-            ctx.save(); ctx.translate(150,150); ctx.rotate(i * Math.PI/2 + Math.PI/4);
-            ctx.fillStyle = db.colorTextoRuleta; ctx.textAlign = "center"; ctx.font = "bold 13px Poppins";
-            ctx.fillText(db.premios[i], 75, 5); ctx.restore();
-        }
-    }
+function quitarFoto(e) {
+    if(e) e.stopPropagation();
+    currentImg = "";
+    document.getElementById('drop-text').innerText = "📸 Arrastra o selecciona foto aquí";
+    document.getElementById('btn-del-img').style.display = "none";
+    if(document.getElementById('foto-input')) document.getElementById('foto-input').value = "";
+    updateLivePreview();
+}
 
-    function girarRuleta() {
-        if(estaGirando) return;
-        estaGirando = true;
-        const canvas = document.getElementById('canvas-ruleta');
-        const btn = document.getElementById('btn-girar');
-        btn.disabled = true;
-        const totalDeg = 3600 + Math.floor(Math.random() * 360);
-        canvas.style.transform = `rotate(${totalDeg}deg)`;
-        setTimeout(() => {
-            estaGirando = false; btn.disabled = false;
-            const index = Math.floor(((360 - (totalDeg % 360) + 270) % 360) / 90);
-            alert(db.tipos[index] === "win" ? "🔥 ¡GANASTE!: " + db.premios[index] : "❌ Resultado: " + db.premios[index]);
-        }, 4000);
+function actualizarUIHeader() {
+    document.getElementById('shop-name-display').innerText = db.nombreTienda || "H-ESSENCE";
+    document.getElementById('shop-slogan-display').innerText = db.slogan || "Luxury Perfumery RD";
+    if(db.logo) {
+        const logoHeader = document.getElementById('shop-logo-header');
+        logoHeader.src = db.logo;
+        logoHeader.style.display = "inline-block";
+        document.getElementById('bg-logo').src = db.logo;
     }
+}
 
-    function render() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const tabla = document.getElementById('tabla-body');
-        const catalogo = document.getElementById('catalogo-container');
-        tabla.innerHTML = ""; catalogo.innerHTML = "";
-        document.getElementById('box-ruleta-cliente').classList.toggle('hidden', !db.ruletaVisible);
-
-        db.productos.forEach(p => {
-            const ganancia = p.venta - p.costo;
-            const badgeT = p.dispo === 'inmediata' ? '<span class="badge-dispo bg-inmediata">Inmediata</span>' : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
-            
-            tabla.innerHTML += `<tr>
-                <td>${p.ref}</td><td>${p.nombre}</td><td>${p.onzas}</td><td>${badgeT}</td>
-                <td><b>${p.stock}</b></td><td>$${p.costo}</td><td>$${p.venta}</td>
-                <td style="color:green">$${ganancia}</td>
-                <td><button onclick="editar(${p.id})">✏️</button> <button onclick="borrar(${p.id})">🗑️</button></td>
-            </tr>`;
-            
-            if(p.nombre.toLowerCase().includes(query) || p.ref.toLowerCase().includes(query)) {
-                const wsMsg = `Hola, me interesa: *${p.nombre}* (${p.onzas}) - RD$ ${p.venta}`;
-                catalogo.innerHTML += `
-                <div class="card">
-                    ${p.dispo === 'inmediata' ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Inmediata</span>' : '<span class="badge-dispo bg-pedido badge-card-dispo">Pedido</span>'}
-                    <span class="badge-size">${p.onzas}</span>
-                    <img src="${p.img}">
-                    <h3>${p.nombre}</h3>
-                    <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta}</p>
-                    <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">WhatsApp</a>
-                </div>`;
-            }
-        });
+function cargarInputsAdmin() {
+    if(!esAdmin) return;
+    document.getElementById('input-shop-name').value = db.nombreTienda || "";
+    document.getElementById('input-shop-slogan').value = db.slogan || "";
+    document.getElementById('ruleta-visible-check').checked = db.ruletaVisible;
+    document.getElementById('wheel-text-color').value = db.colorTextoRuleta || "#FFFFFF";
+    document.getElementById('wheel-arrow-color').value = db.colorFlecha || "#1A1A1A";
+    for(let i=0; i<4; i++) {
+        document.getElementById('p'+(i+1)).value = db.premios[i] || "";
+        document.getElementById('t'+(i+1)).value = db.tipos[i] || "win";
     }
+}
 
-    function editar(id) {
-        const p = db.productos.find(x => x.id === id);
-        document.getElementById('edit-id').value = p.id;
-        document.getElementById('referencia').value = p.ref;
-        document.getElementById('nombre').value = p.nombre;
-        document.getElementById('onzas').value = p.onzas;
-        document.getElementById('disponibilidad').value = p.dispo;
-        document.getElementById('venta').value = p.venta;
-        document.getElementById('costo').value = p.costo;
-        document.getElementById('stock-cantidad').value = p.stock;
-        currentImg = p.img;
-        document.getElementById('btn-add').classList.add('hidden');
-        document.getElementById('btn-update').classList.remove('hidden');
-        updateLivePreview();
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
+function borrar(id) { 
+    if(confirm("¿Eliminar producto?")) { 
+        db.productos = db.productos.filter(x => x.id !== id); 
+        render(); 
+    } 
+}
 
-    function borrar(id) { 
-        if(confirm("¿Eliminar producto?")) { 
-            db.productos = db.productos.filter(x => x.id !== id); 
-            render(); 
-        } 
-    }
+function cambiarVista() { 
+    esAdmin = !esAdmin; 
+    document.getElementById('panel-admin').style.display = esAdmin ? 'block' : 'none'; 
+    document.getElementById('seccion-cliente').classList.toggle('hidden', esAdmin); 
+    document.getElementById('toggle-view').innerText = esAdmin ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
+    if(!esAdmin) { render(); dibujarRuleta(); }
+}
 
-    function cambiarVista() { 
-        esAdmin = !esAdmin; 
-        document.getElementById('panel-admin').style.display = esAdmin ? 'block' : 'none'; 
-        document.getElementById('seccion-cliente').classList.toggle('hidden', esAdmin); 
-        document.getElementById('toggle-view').innerText = esAdmin ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
-        if(!esAdmin) { render(); dibujarRuleta(); }
-    }
+function mostrarAlerta(msg, tipo = "exito") {
+    const toast = document.getElementById('toast-alert');
+    toast.innerText = msg;
+    toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
 
-    function exportarAExcel() {
-        const cleanData = db.productos.map(p => ({ Referencia: p.ref, Nombre: p.nombre, Tamaño: p.onzas, Venta: p.venta, Stock: p.stock }));
-        const ws = XLSX.utils.json_to_sheet(cleanData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-        XLSX.writeFile(wb, "H-Essence_Inventario.xlsx");
+function actualizarColorFlecha(color) {
+    const flecha = document.getElementById('flecha-cliente');
+    if(flecha) flecha.style.borderTopColor = color;
+}
+
+function dibujarRuleta() {
+    const canvas = document.getElementById('canvas-ruleta');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const colores = ["#D4AF37", "#1A1A1A", "#D4AF37", "#1A1A1A"];
+    ctx.clearRect(0,0,300,300);
+    for(let i=0; i<4; i++){
+        ctx.beginPath(); ctx.fillStyle = colores[i]; ctx.moveTo(150,150);
+        ctx.arc(150,150,140, i * Math.PI/2, (i+1) * Math.PI/2); ctx.fill();
+        ctx.save(); ctx.translate(150,150); ctx.rotate(i * Math.PI/2 + Math.PI/4);
+        ctx.fillStyle = db.colorTextoRuleta; ctx.textAlign = "center"; ctx.font = "bold 13px Poppins";
+        ctx.fillText(db.premios[i], 75, 5); ctx.restore();
     }
-</script>
-</body>
+}
+
+function girarRuleta() {
+    if(estaGirando) return;
+    estaGirando = true;
+    const canvas = document.getElementById('canvas-ruleta');
+    const btn = document.getElementById('btn-girar');
+    btn.disabled = true;
+    const totalDeg = 3600 + Math.floor(Math.random() * 360);
+    canvas.style.transform = `rotate(${totalDeg}deg)`;
+    setTimeout(() => {
+        estaGirando = false; btn.disabled = false;
+        const index = Math.floor(((360 - (totalDeg % 360) + 270) % 360) / 90);
+        alert(db.tipos[index] === "win" ? "🔥 ¡GANASTE!: " + db.premios[index] : "❌ Resultado: " + db.premios[index]);
+    }, 4000);
+}
+
+function updateLivePreview() {
+    const preview = document.getElementById('live-preview');
+    const n = document.getElementById('nombre').value || "Nombre";
+    const v = document.getElementById('venta').value || "0";
+    let o = document.getElementById('onzas').value;
+    const disp = document.getElementById('disponibilidad').value;
+    if(o && !o.toLowerCase().includes('oz') && !o.toLowerCase().includes('ml')) o += " oz";
+    const badgeStock = disp === 'inmediata' ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Inmediata</span>' : '<span class="badge-dispo bg-pedido badge-card-dispo">Pedido</span>';
+    const img = currentImg || "https://via.placeholder.com/300";
+    preview.innerHTML = `<div class="card">${badgeStock}${o ? `<span class="badge-size">${o}</span>` : ''}<img src="${img}"><h3>${n}</h3><p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p></div>`;
+}
+
+function exportarAExcel() {
+    const cleanData = db.productos.map(p => ({ Referencia: p.ref, Nombre: p.nombre, Tamaño: p.onzas, Venta: p.venta, Stock: p.stock }));
+    const ws = XLSX.utils.json_to_sheet(cleanData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+    XLSX.writeFile(wb, "H-Essence_Inventario.xlsx");
+}
