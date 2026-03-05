@@ -1211,3 +1211,49 @@
     }
 })();
 </script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+
+<script>
+  // Tus credenciales reales que acabas de obtener
+  const firebaseConfig = {
+    apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
+    authDomain: "h-essence-shop.firebaseapp.com",
+    databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com", // URL estándar de Firebase
+    projectId: "h-essence-shop",
+    storageBucket: "h-essence-shop.firebasestorage.app",
+    messagingSenderId: "128450401838",
+    appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+  };
+
+  // Inicializar Firebase
+  firebase.initializeApp(firebaseConfig);
+  const rdb = firebase.database();
+
+  // 1. SINCRONIZACIÓN EN VIVO: Carga los productos desde la nube automáticamente
+  rdb.ref('catalogo_v1').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      window.db = data;
+      // Actualizamos la tienda para que el cliente vea los cambios sin refrescar
+      if (typeof render === 'function') render(); 
+      if (typeof actualizarUIHeader === 'function') actualizarUIHeader();
+    }
+  });
+
+  // 2. GUARDADO AUTOMÁTICO: Cuando tú des click en "Guardar", se sube a Google
+  document.addEventListener('click', (e) => {
+    // Detectamos si el botón que presionaste es el de Guardar
+    if (e.target.innerText.includes('Guardar') || e.target.classList.contains('btn-save-all')) {
+      rdb.ref('catalogo_v1').set(window.db)
+        .then(() => {
+          alert("✅ ¡Éxito! Tu catálogo ahora está actualizado para todos los clientes.");
+        })
+        .catch((error) => {
+          console.error("Error al sincronizar:", error);
+          alert("Hubo un error al subir los datos. Revisa la consola.");
+        });
+    }
+  });
+</script>
+</body>
