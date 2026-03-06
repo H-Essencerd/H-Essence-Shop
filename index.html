@@ -1,226 +1,163 @@
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-/* USA TU CONFIG QUE YA TENIAS */
-const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE",
-  messagingSenderId: "TU_MSG_ID",
-  appId: "TU_APP_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const firestore = getFirestore(app);
-const DB_REF = doc(firestore,"tienda","datos");
-
-/* BASE DE DATOS */
-let db = {
-  productos:[],
-  nombreTienda:"H-ESSENCE",
-  slogan:"Luxury Perfumery",
-  logo:""
-};
-
-let esAdmin=false;
-let currentImg="";
-
-/* GUARDAR EN NUBE */
-async function guardarTodo(){
-  await setDoc(DB_REF,db);
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>H-Essence | Catálogo</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+    --dorado: #D4AF37; --negro: #1A1A1A; --crema: #F9F7F2;
+    --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32; 
+    --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
 }
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+body { background-color: var(--crema); color: var(--negro); min-height: 100vh; padding-bottom:50px; }
+header { text-align:center; padding:2rem 1rem; background: var(--negro); color: var(--dorado); border-bottom:5px solid var(--dorado);}
+header h1 { font-family:'Playfair Display', serif; font-size:2.5rem; letter-spacing:4px; text-transform:uppercase; }
+#shop-logo-header { max-height:120px; width:auto; margin-bottom:10px; display:inline-block; object-fit:contain;}
+.grid-cliente { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; padding:20px; }
+.card { background:white; padding:15px; border-radius:15px; box-shadow:0 4px 8px rgba(0,0,0,0.1); text-align:center; position:relative; }
+.card img { width:100%; height:250px; object-fit:cover; border-radius:10px; margin-bottom:10px;}
+.badge-dispo { padding:4px 8px; border-radius:5px; font-size:0.65rem; font-weight:bold; text-transform:uppercase; display:inline-block;}
+.bg-inmediata { background: var(--ganancia); color:white; }
+.bg-pedido { background: var(--azul-edit); color:white;}
+.badge-size { background: var(--negro); color: var(--dorado); padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:bold; position:absolute; top:15px; right:15px; z-index:10; }
+#search-input { max-width:400px; border:2px solid var(--dorado); border-radius:20px; padding:10px; margin-bottom:20px;}
+.ruleta-box { text-align:center; margin:40px auto; max-width:400px; position:relative; padding:20px; }
+.ruleta-flecha { position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:20px solid transparent; border-right:20px solid transparent; border-top:40px solid var(--negro); pointer-events:none; }
+#canvas-ruleta { border-radius:50%; border:8px solid var(--negro); transition: transform 4s cubic-bezier(0.1,0,0,1);}
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
 
-/* CARGAR DE NUBE */
-async function cargarTodo(){
-  const snap=await getDoc(DB_REF);
-  if(snap.exists()){
-    db=snap.data();
-  }
-}
+<header>
+    <img id="shop-logo-header" src="" alt="Logo">
+    <h1 id="shop-name-display">H-ESSENCE</h1>
+    <p id="shop-slogan-display">Luxury Perfumery RD</p>
+</header>
 
-/* HEADER */
-function actualizarHeader(){
-
-  document.getElementById("shop-name-display").innerText=db.nombreTienda;
-  document.getElementById("shop-slogan-display").innerText=db.slogan;
-
-  if(db.logo){
-    const logo=document.getElementById("shop-logo-header");
-    logo.src=db.logo;
-    logo.style.display="block";
-  }
-
-}
-
-/* SUBIR LOGO */
-function subirLogo(file){
-
-  const reader=new FileReader();
-
-  reader.onload=e=>{
-    db.logo=e.target.result;
-    guardarTodo();
-    actualizarHeader();
-  };
-
-  reader.readAsDataURL(file);
-
-}
-
-/* AGREGAR O EDITAR PRODUCTO */
-function procesarProducto(){
-
-  const id=document.getElementById("edit-id").value;
-
-  const producto={
-    id:id?parseInt(id):Date.now(),
-    ref:document.getElementById("referencia").value,
-    nombre:document.getElementById("nombre").value,
-    onzas:document.getElementById("onzas").value,
-    venta:parseFloat(document.getElementById("venta").value)||0,
-    costo:parseFloat(document.getElementById("costo").value)||0,
-    stock:parseInt(document.getElementById("stock-cantidad").value)||0,
-    img:currentImg||"https://via.placeholder.com/300"
-  };
-
-  if(!producto.nombre){
-    alert("Debes poner nombre");
-    return;
-  }
-
-  if(id){
-    const index=db.productos.findIndex(p=>p.id==producto.id);
-    db.productos[index]=producto;
-  }else{
-    db.productos.push(producto);
-  }
-
-  guardarTodo();
-  render();
-  limpiarForm();
-
-}
-
-/* BORRAR */
-function borrar(id){
-
-  if(!confirm("Eliminar producto?")) return;
-
-  db.productos=db.productos.filter(p=>p.id!==id);
-
-  guardarTodo();
-  render();
-
-}
-
-/* EDITAR */
-function editar(id){
-
-  const p=db.productos.find(p=>p.id==id);
-
-  document.getElementById("edit-id").value=p.id;
-  document.getElementById("referencia").value=p.ref;
-  document.getElementById("nombre").value=p.nombre;
-  document.getElementById("onzas").value=p.onzas;
-  document.getElementById("venta").value=p.venta;
-  document.getElementById("costo").value=p.costo;
-  document.getElementById("stock-cantidad").value=p.stock;
-
-  currentImg=p.img;
-
-}
-
-/* RENDER PRODUCTOS */
-function render(){
-
-  const tabla=document.getElementById("tabla-body");
-  const catalogo=document.getElementById("catalogo-container");
-
-  tabla.innerHTML="";
-  catalogo.innerHTML="";
-
-  db.productos.forEach(p=>{
-
-    const ganancia=p.venta-p.costo;
-
-    tabla.innerHTML+=`
-    <tr>
-      <td>${p.ref}</td>
-      <td>${p.nombre}</td>
-      <td>${p.onzas}</td>
-      <td>${p.stock}</td>
-      <td>${p.costo}</td>
-      <td>${p.venta}</td>
-      <td>${ganancia}</td>
-      <td>
-        <button onclick="editar(${p.id})">✏️</button>
-        <button onclick="borrar(${p.id})">🗑️</button>
-      </td>
-    </tr>
-    `;
-
-    catalogo.innerHTML+=`
-    <div class="card">
-      <img src="${p.img}">
-      <h3>${p.nombre}</h3>
-      <p style="font-weight:bold;color:gold;">RD$ ${p.venta}</p>
-      <a href="https://wa.me/18097530456?text=Hola quiero ${p.nombre}">
-      Comprar
-      </a>
+<div id="seccion-cliente">
+    <div id="box-ruleta-cliente" class="ruleta-box">
+        <div class="canvas-container">
+            <div class="ruleta-flecha" id="flecha-cliente"></div>
+            <canvas id="canvas-ruleta" width="300" height="300"></canvas>
+        </div>
+        <br>
+        <button id="btn-girar" onclick="girarRuleta()" style="background:var(--dorado); padding:15px 30px; border-radius:30px; border:2px solid var(--negro); cursor:pointer; font-weight:bold; margin-top:10px;">🎰 GIRAR RULETA</button>
     </div>
-    `;
 
-  });
+    <div style="text-align:center; padding:20px;">
+        <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="render()">
+    </div>
+    <div id="catalogo-container" class="grid-cliente"></div>
+</div>
 
-}
+<script>
+const TEL_WHATSAPP = "18097530456";
+let estaGirando = false;
 
-/* CAMBIAR VISTA */
-function cambiarVista(){
+// Base de datos
+let db = JSON.parse(localStorage.getItem('h_essence_final_db')) || {
+    productos: [],
+    nombreTienda: "H-ESSENCE",
+    slogan: "Luxury Perfumery RD",
+    logo: "",
+    ruletaVisible: false,
+    premios: ["PREMIO 1","INTENTA OTRA VEZ","PREMIO VIP","CASI!"],
+    tipos: ["win","lose","win","lose"],
+    colorTextoRuleta: "#FFFFFF",
+    colorFlecha: "#1A1A1A"
+};
 
-  esAdmin=!esAdmin;
+// Inicialización
+window.addEventListener('load', () => {
+    // Mostrar logo y nombre de tienda
+    if(db.logo) document.getElementById('shop-logo-header').src = db.logo;
+    document.getElementById('shop-name-display').innerText = db.nombreTienda;
+    document.getElementById('shop-slogan-display').innerText = db.slogan;
 
-  document.getElementById("panel-admin")
-  .classList.toggle("hidden",!esAdmin);
+    // Mostrar u ocultar ruleta
+    document.getElementById('box-ruleta-cliente').classList.toggle('hidden', !db.ruletaVisible);
 
-  document.getElementById("seccion-cliente")
-  .classList.toggle("hidden",esAdmin);
-
-}
-
-/* LIMPIAR FORM */
-function limpiarForm(){
-
-  document.getElementById("edit-id").value="";
-  document.getElementById("referencia").value="";
-  document.getElementById("nombre").value="";
-  document.getElementById("onzas").value="";
-  document.getElementById("venta").value="";
-  document.getElementById("costo").value="";
-  document.getElementById("stock-cantidad").value="1";
-
-  currentImg="";
-
-}
-
-/* INICIO */
-window.addEventListener("load",async()=>{
-
-  await cargarTodo();
-
-  actualizarHeader();
-
-  render();
-
+    render();
+    dibujarRuleta();
 });
 
-/* EXPONER FUNCIONES */
-window.procesarProducto=procesarProducto;
-window.borrar=borrar;
-window.editar=editar;
-window.cambiarVista=cambiarVista;
-window.subirLogo=subirLogo;
+// Renderizar catálogo
+function render() {
+    const query = document.getElementById('search-input').value.toLowerCase();
+    const catalogo = document.getElementById('catalogo-container');
+    catalogo.innerHTML = "";
 
+    db.productos.forEach(p => {
+        if(p.nombre.toLowerCase().includes(query) || p.ref.toLowerCase().includes(query)) {
+            const badgeStockCard = p.dispo==="inmediata"?'<span class="badge-dispo bg-inmediata">Entrega Inmediata</span>':'<span class="badge-dispo bg-pedido">Por Pedido</span>';
+            const wsMsg = `Hola, me interesa este perfume:%0A- *${p.nombre}* (${p.onzas})%0A- Estado: *${p.dispo}*%0A- Precio: RD$ ${p.venta}`;
+            catalogo.innerHTML += `
+            <div class="card">
+                ${badgeStockCard}
+                <span class="badge-size">${p.onzas}</span>
+                <img src="${p.img}">
+                <h3>${p.nombre}</h3>
+                <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta}</p>
+                <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">WhatsApp</a>
+            </div>`;
+        }
+    });
+}
+
+// Ruleta
+function dibujarRuleta() {
+    const canvas = document.getElementById('canvas-ruleta');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const numSectores = 4;
+    const angulo = (Math.PI*2)/numSectores;
+    ctx.clearRect(0,0,300,300);
+    for(let i=0;i<numSectores;i++){
+        ctx.beginPath();
+        ctx.moveTo(150,150);
+        ctx.arc(150,150,145,i*angulo,(i+1)*angulo);
+        ctx.fillStyle = i%2===0?"#D4AF37":"#1A1A1A";
+        ctx.fill();
+        ctx.save();
+        ctx.translate(150,150);
+        ctx.rotate(i*angulo+angulo/2);
+        ctx.fillStyle = db.colorTextoRuleta;
+        ctx.textAlign="right";
+        ctx.font="bold 11px Poppins";
+        ctx.fillText(db.premios[i] || "PREMIO "+(i+1),135,5);
+        ctx.restore();
+    }
+    const logoDiv = document.getElementById('shop-logo-header');
+    if(logoDiv && db.logo) logoDiv.src = db.logo;
+}
+
+function girarRuleta() {
+    if(estaGirando) return;
+    estaGirando = true;
+    const canvas = document.getElementById('canvas-ruleta');
+    const btn = document.getElementById('btn-girar');
+    btn.disabled=true;
+    const vueltasExtra = 3600;
+    const gradosPremio = Math.floor(Math.random()*360);
+    let rotacionActual = vueltasExtra+gradosPremio;
+    canvas.style.transition='transform 4s cubic-bezier(0.1,0,0,1)';
+    canvas.style.transform=`rotate(${rotacionActual}deg)`;
+    setTimeout(()=>{
+        estaGirando=false;
+        btn.disabled=false;
+        const realDeg = rotacionActual%360;
+        const index=Math.floor(((360-realDeg+270)%360)/90)%4;
+        const premio=db.premios[index];
+        if(db.tipos[index]==="win") alert("🔥 ¡ENHORABUENA H-ESSENCE!: "+premio);
+        else alert("❌ Resultado: "+premio);
+    },4100);
+}
 </script>
+
+</body>
+</html>
