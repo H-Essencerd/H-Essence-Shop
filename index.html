@@ -1792,5 +1792,138 @@
     window.setVistaCatalogo = setVistaCatalogo;
     window.previewHeaderText = previewHeaderText;
   </script>
+  <script>
+(function () {
+  function partirTextoEnLineas(ctx, texto, maxWidth) {
+    const palabras = String(texto || "").split(" ");
+    const lineas = [];
+    let lineaActual = "";
+
+    for (const palabra of palabras) {
+      const prueba = lineaActual ? lineaActual + " " + palabra : palabra;
+      if (ctx.measureText(prueba).width <= maxWidth) {
+        lineaActual = prueba;
+      } else {
+        if (lineaActual) lineas.push(lineaActual);
+        lineaActual = palabra;
+      }
+    }
+
+    if (lineaActual) lineas.push(lineaActual);
+    return lineas;
+  }
+
+  function obtenerLineasAjustadas(ctx, texto, radioTexto, fontFamily) {
+    let fontSize = 16;
+    let lineas = [];
+    const maxWidth = radioTexto * 0.95;
+    const maxLineas = 3;
+
+    while (fontSize >= 10) {
+      ctx.font = `bold ${fontSize}px ${fontFamily}`;
+      lineas = partirTextoEnLineas(ctx, texto, maxWidth);
+
+      const anchoMax = Math.max(...lineas.map(l => ctx.measureText(l).width), 0);
+
+      if (lineas.length <= maxLineas && anchoMax <= maxWidth) {
+        return { fontSize, lineas };
+      }
+
+      fontSize -= 1;
+    }
+
+    ctx.font = `bold 10px ${fontFamily}`;
+    lineas = partirTextoEnLineas(ctx, texto, maxWidth);
+
+    if (lineas.length > 3) {
+      lineas = lineas.slice(0, 3);
+      let ultima = lineas[2];
+      while (ctx.measureText(ultima + "...").width > maxWidth && ultima.length > 0) {
+        ultima = ultima.slice(0, -1);
+      }
+      lineas[2] = ultima + "...";
+    }
+
+    return { fontSize: 10, lineas };
+  }
+
+  window.dibujarRuleta = function () {
+    const canvas = document.getElementById('canvas-ruleta');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const premios = Array.isArray(window.db?.premios) ? window.db.premios : ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"];
+    const colorTexto = window.db?.colorTextoRuleta || "#FFFFFF";
+    const colorFlecha = window.db?.colorFlecha || "#1A1A1A";
+
+    const size = canvas.width;
+    const center = size / 2;
+    const radius = center - 10;
+    const angulo = (Math.PI * 2) / 4;
+    const colores = ["#D4AF37", "#1A1A1A", "#D4AF37", "#1A1A1A"];
+
+    ctx.clearRect(0, 0, size, size);
+
+    for (let i = 0; i < 4; i++) {
+      const start = i * angulo;
+      const end = start + angulo;
+
+      ctx.beginPath();
+      ctx.moveTo(center, center);
+      ctx.arc(center, center, radius, start, end);
+      ctx.closePath();
+      ctx.fillStyle = colores[i];
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(start + angulo / 2);
+
+      const texto = premios[i] || `PREMIO ${i + 1}`;
+      const radioTexto = radius * 0.68;
+
+      const ajuste = obtenerLineasAjustadas(ctx, texto.toUpperCase(), radius * 0.72, 'Poppins');
+      ctx.font = `bold ${ajuste.fontSize}px Poppins`;
+      ctx.fillStyle = colorTexto;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const lineHeight = ajuste.fontSize + 2;
+      const bloqueAltura = ajuste.lineas.length * lineHeight;
+      let y = -bloqueAltura / 2 + lineHeight / 2;
+
+      ajuste.lineas.forEach(linea => {
+        ctx.fillText(linea, radioTexto, y);
+        y += lineHeight;
+      });
+
+      ctx.restore();
+    }
+
+    const flecha = document.getElementById('flecha-cliente');
+    if (flecha) flecha.style.borderTopColor = colorFlecha;
+
+    if (typeof window.actualizarLogoCentroRuleta === "function") {
+      window.actualizarLogoCentroRuleta();
+    }
+  };
+
+  const originalGuardarTodo = window.guardarTodo;
+  if (typeof originalGuardarTodo === "function") {
+    window.guardarTodo = async function () {
+      await originalGuardarTodo.apply(this, arguments);
+      setTimeout(() => {
+        if (typeof window.dibujarRuleta === "function") window.dibujarRuleta();
+      }, 50);
+    };
+  }
+
+  window.addEventListener("load", () => {
+    setTimeout(() => {
+      if (typeof window.dibujarRuleta === "function") window.dibujarRuleta();
+    }, 200);
+  });
+})();
+</script>
 </body>
 </html>
