@@ -13,6 +13,7 @@
       --dorado: #D4AF37; --negro: #1A1A1A; --crema: #F9F7F2;
       --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32;
       --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
+      --gris-suave: #f3f4f6;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
@@ -104,6 +105,55 @@
     }
 
     .preview-box { max-width: 300px; margin: 10px auto; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 15px;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-left: 5px solid var(--dorado);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    }
+
+    .stat-card small {
+      display: block;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .stat-card strong {
+      font-size: 1.2rem;
+      display: block;
+    }
+
+    .top-margen-lista {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .top-margen-item {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .top-margen-item b { display:block; }
+    .top-margen-item small { color:#666; }
 
     .ruleta-box { text-align: center; margin: 40px auto; max-width: 420px; position: relative; padding: 20px; }
     .canvas-container { position: relative; display: inline-block; }
@@ -421,6 +471,41 @@
   <div id="panel-admin" class="admin-section hidden">
     <h3>🛠️ PANEL DE ADMINISTRACIÓN</h3>
 
+    <div class="admin-box">
+      <h4>📊 Resumen de Inventario</h4>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <small>Productos</small>
+          <strong id="stat-total-productos">0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Unidades en stock</small>
+          <strong id="stat-total-unidades">0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Capital invertido</small>
+          <strong id="stat-capital">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Valor total de venta</small>
+          <strong id="stat-venta-total">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Ganancia potencial</small>
+          <strong id="stat-ganancia">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Margen promedio</small>
+          <strong id="stat-margen-promedio">0%</strong>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;">
+        <h4>🏆 Top 5 productos con mejor margen %</h4>
+        <div id="top-margen-lista" class="top-margen-lista"></div>
+      </div>
+    </div>
+
     <div class="form-grid">
       <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #ddd;">
         <div><label><small>Nombre Tienda:</small></label><input type="text" id="input-shop-name" oninput="previewHeaderText()"></div>
@@ -665,6 +750,10 @@
       return ((venta - costo) / venta) * 100;
     }
 
+    function formatMoney(n) {
+      return `RD$ ${Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 2 })}`;
+    }
+
     function aplicarLayoutHeader(){
       const logo = document.getElementById('shop-logo-header');
       const h1 = document.getElementById('shop-name-display');
@@ -726,6 +815,69 @@
       if (flecha) flecha.style.borderTopColor = color;
     }
 
+    function actualizarDashboardAdmin() {
+      const productos = Array.isArray(db.productos) ? db.productos : [];
+
+      let totalProductos = productos.length;
+      let totalUnidades = 0;
+      let capital = 0;
+      let ventaTotal = 0;
+      let gananciaTotal = 0;
+
+      productos.forEach(p => {
+        const stock = Number(p.stock) || 0;
+        const costo = Number(p.costo) || 0;
+        const venta = Number(p.venta) || 0;
+
+        totalUnidades += stock;
+        capital += costo * stock;
+        ventaTotal += venta * stock;
+        gananciaTotal += (venta - costo) * stock;
+      });
+
+      const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
+
+      const byMargen = [...productos]
+        .map(p => ({
+          ...p,
+          margen: calcularMargenPorcentaje(p.venta, p.costo)
+        }))
+        .sort((a, b) => b.margen - a.margen)
+        .slice(0, 5);
+
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+      };
+
+      setText('stat-total-productos', totalProductos);
+      setText('stat-total-unidades', totalUnidades);
+      setText('stat-capital', formatMoney(capital));
+      setText('stat-venta-total', formatMoney(ventaTotal));
+      setText('stat-ganancia', formatMoney(gananciaTotal));
+      setText('stat-margen-promedio', `${margenPromedio.toFixed(2)}%`);
+
+      const topBox = document.getElementById('top-margen-lista');
+      if (topBox) {
+        if (!byMargen.length) {
+          topBox.innerHTML = `<div class="top-margen-item"><div><b>Sin productos</b><small>Aún no hay datos para mostrar.</small></div></div>`;
+        } else {
+          topBox.innerHTML = byMargen.map((p, i) => `
+            <div class="top-margen-item">
+              <div>
+                <b>#${i + 1} ${safeText(p.nombre)}</b>
+                <small>${safeText(p.categoria || "General")} • ${safeText(p.onzas)}</small>
+              </div>
+              <div style="text-align:right;">
+                <b>${p.margen.toFixed(2)}%</b>
+                <small>${formatMoney((Number(p.venta)||0) - (Number(p.costo)||0))}</small>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
     function setModoAdmin(on) {
       esAdmin = !!on;
       const panel = document.getElementById('panel-admin');
@@ -739,6 +891,7 @@
 
       render();
       dibujarRuleta();
+      actualizarDashboardAdmin();
     }
 
     function cambiarVista() {
@@ -780,6 +933,7 @@
           actualizarUIHeader();
           dibujarRuleta();
           render();
+          actualizarDashboardAdmin();
         }
       });
     }
@@ -1018,6 +1172,7 @@
 
       saveLocal();
       render();
+      actualizarDashboardAdmin();
       resetForm();
       await guardarNube();
       mostrarAlerta(id ? "✏️ Producto actualizado" : "📦 Producto añadido");
@@ -1030,6 +1185,7 @@
       db.productos = (db.productos || []).filter(x => x.id !== id);
       saveLocal();
       render();
+      actualizarDashboardAdmin();
       await guardarNube();
       mostrarAlerta("🗑️ Producto eliminado", "error");
     }
@@ -1130,6 +1286,7 @@
       actualizarColorFlecha(db.colorFlecha);
       dibujarRuleta();
       render();
+      actualizarDashboardAdmin();
 
       await guardarNube();
       mostrarAlerta("✅ Configuración del sistema actualizada");
@@ -1377,6 +1534,7 @@
       actualizarBadgeCart();
       aplicarVistaCatalogo();
       actualizarLogoCentroRuleta();
+      actualizarDashboardAdmin();
     }
 
     async function shareCatalog(){
@@ -1609,6 +1767,7 @@
         actualizarBadgeCart();
         aplicarVistaCatalogo();
         actualizarLogoCentroRuleta();
+        actualizarDashboardAdmin();
       } catch (e) {
         fatal(e);
       }
