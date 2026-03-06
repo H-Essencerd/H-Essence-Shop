@@ -14,12 +14,13 @@
       --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32;
       --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
     }
+
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
     body { background-color: var(--crema); color: var(--negro); padding-bottom: 50px; min-height: 100vh; }
 
     #bg-logo {
       position: fixed; top: 55%; left: 50%; transform: translate(-50%, -50%);
-      width: 90vw; max-width: 800px; opacity: 0.08; z-index: -1; pointer-events: none; object-fit: contain;
+      width: 90vw; max-width: 900px; opacity: 0.08; z-index: -1; pointer-events: none; object-fit: contain;
     }
 
     header {
@@ -27,8 +28,9 @@
       padding: 2rem 1rem; text-align: center; border-bottom: 5px solid var(--dorado);
       display: flex; flex-direction: column; align-items: center; position: relative; z-index: 10;
     }
-    #shop-logo-header { max-height: 120px; width: auto; max-width: 90%; object-fit: contain; margin-bottom: 15px; display: none; }
-    header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 4px; text-transform: uppercase; }
+    #shop-logo-header { max-height: none; height: auto; width: 240px; max-width: 90%; object-fit: contain; margin-bottom: 12px; display: none; }
+    header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 4px; text-transform: uppercase; margin-top: 0px; }
+    #shop-slogan-display { margin-top: 0px; }
 
     .admin-section {
       max-width: 1200px; margin: 20px auto; background: rgba(255, 255, 255, 0.95);
@@ -50,8 +52,8 @@
     }
 
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
-    input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 14px; outline: none; }
-    input:focus, select:focus { border-color: var(--dorado); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+    input, select, textarea { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 14px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--dorado); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
 
     .btn-add { background: var(--ganancia); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
     .btn-update { background: var(--azul-edit); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
@@ -80,7 +82,7 @@
     }
     .preview-box { max-width: 300px; margin: 10px auto; }
 
-    .ruleta-box { text-align: center; margin: 40px auto; max-width: 400px; position: relative; padding: 20px; }
+    .ruleta-box { text-align: center; margin: 40px auto; max-width: 420px; position: relative; padding: 20px; }
     .canvas-container { position: relative; display: inline-block; }
 
     .ruleta-flecha {
@@ -101,7 +103,7 @@
     .bg-pedido { background: var(--azul-edit); color: white; }
 
     .grid-cliente { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
-    .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; position: relative; }
+    .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; position: relative; overflow:hidden;}
     .card img { width: 100%; height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
 
     .badge-size { background: var(--negro); color: var(--dorado); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; position: absolute; top: 15px; right: 15px; z-index: 10; }
@@ -109,8 +111,13 @@
 
     .hidden { display: none !important; }
 
-    /* el botón toggle solo lo verá el admin */
-    #toggle-view { position: fixed; bottom: 20px; right: 20px; background: var(--negro); color: var(--dorado); padding: 12px 20px; border-radius: 50px; cursor: pointer; z-index: 1000; border: 2px solid var(--dorado); font-weight: bold; display:none; }
+    #toggle-view {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--negro); color: var(--dorado);
+      padding: 12px 20px; border-radius: 50px; cursor: pointer; z-index: 1000;
+      border: 2px solid var(--dorado); font-weight: bold;
+      display:none; /* solo admin */
+    }
 
     #toast-alert {
       position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
@@ -126,18 +133,139 @@
     .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
     input:checked + .slider { background-color: var(--dorado); }
 
-    /* mensaje visible si algo falla (evita blanco) */
+    /* Anti “pantalla blanca”: mostramos error si pasa algo */
     #fatal {
       display:none; max-width:900px; margin:30px auto; background:#fff; border:2px solid var(--rojo-lose);
       border-radius:12px; padding:18px;
     }
     #fatal h3{ color:var(--rojo-lose); margin-bottom:8px; }
     #fatal pre{ white-space:pre-wrap; font-size:12px; background:#f8f8f8; padding:10px; border-radius:10px; overflow:auto; }
+
+    /* Botón compartir catálogo */
+    #btn-compartir-catalogo{
+      position: fixed; bottom: 80px; right: 20px; z-index: 9998;
+      background: linear-gradient(145deg, var(--dorado), #b8860b);
+      color: var(--negro);
+      border: 2px solid var(--negro);
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(0,0,0,.25);
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    /* Botón carrito */
+    #btn-cart{
+      position: fixed; bottom: 20px; left: 20px; z-index: 9999;
+      background: var(--negro); color: var(--dorado);
+      border: 2px solid var(--dorado);
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 22px rgba(0,0,0,.25);
+    }
+
+    #cart-panel{
+      position: fixed; bottom: 80px; left: 20px;
+      width: min(440px, calc(100vw - 40px));
+      max-height: 72vh;
+      overflow: auto;
+      background: white;
+      border: 2px solid var(--dorado);
+      border-radius: 14px;
+      z-index: 9999;
+      box-shadow: 0 10px 30px rgba(0,0,0,.3);
+      display:none;
+    }
+    #cart-panel .cart-head{
+      background: var(--negro); color: var(--dorado);
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--dorado);
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .cart-row{
+      display:flex; gap:10px; padding: 12px 14px;
+      border-bottom: 1px solid #eee; align-items:center;
+    }
+    .cart-row img{ width: 54px; height: 54px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; }
+    .cart-row .info{ flex: 1 1 auto; text-align:left; }
+    .cart-row .info b{ display:block; }
+    .cart-row .qty{ display:flex; align-items:center; gap:6px; flex: 0 0 auto; }
+    .cart-row button{ border:none; cursor:pointer; padding:6px 10px; border-radius:10px; font-weight:900;}
+    .cart-row .btn-minus, .cart-row .btn-plus{ background:#f0f0f0; }
+    .cart-row .btn-del{ background: var(--rojo-lose); color:#fff; }
+
+    #cart-footer{
+      padding: 12px 14px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      justify-content: space-between;
+      flex-direction: column;
+    }
+    #cart-footer .row2{
+      width:100%;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content: space-between;
+    }
+
+    #btn-enviar-pedido{
+      background: var(--whatsapp);
+      color: white;
+      border:none;
+      cursor:pointer;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 900;
+      width:100%;
+    }
+    #btn-vaciar{
+      background:#f0f0f0;
+      border:none;
+      cursor:pointer;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 800;
+    }
+
+    .btn-add-cart{
+      display:inline-block;
+      margin-top:10px;
+      padding:10px 16px;
+      background: var(--negro);
+      color: var(--dorado);
+      text-decoration:none;
+      border-radius: 999px;
+      font-weight: 900;
+      border: 2px solid var(--dorado);
+      cursor:pointer;
+      width: 100%;
+    }
+
+    .btn-share-product{
+      display:inline-block;
+      margin-top:8px;
+      padding:10px 16px;
+      background: #f0f0f0;
+      color: var(--negro);
+      text-decoration:none;
+      border-radius: 999px;
+      font-weight: 900;
+      border: 1px solid #ddd;
+      cursor:pointer;
+      width: 100%;
+    }
   </style>
 </head>
 
 <body>
   <div id="toast-alert">✅ Configuración actualizada</div>
+
   <div id="fatal">
     <h3>⚠️ Error detectado</h3>
     <p>Tu página no debe quedar en blanco. Aquí está el error para corregirlo rápido:</p>
@@ -146,6 +274,30 @@
 
   <img id="bg-logo" src="" alt="">
   <button id="toggle-view" onclick="cambiarVista()">👁️ Vista: Administrador</button>
+
+  <button id="btn-compartir-catalogo" type="button">✨ Compartir Catálogo</button>
+
+  <button id="btn-cart" type="button">🛒 Carrito</button>
+  <div id="cart-panel">
+    <div class="cart-head">
+      <b>🛒 Tu carrito</b>
+      <button id="btn-close-cart" style="background:transparent;color:var(--dorado);border:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="cart-items"></div>
+    <div id="cart-footer">
+      <div>
+        <label style="font-weight:900; font-size:12px;">📝 Nota del pedido (opcional)</label>
+        <textarea id="cart-note" rows="3" placeholder="Ej: Quiero uno para regalo, ¿tienes disponibilidad inmediata?"></textarea>
+      </div>
+      <div class="row2">
+        <button id="btn-vaciar" type="button">Vaciar</button>
+        <div style="text-align:right; font-weight:900;">
+          Total: <span id="cart-total">RD$ 0</span>
+        </div>
+      </div>
+      <button id="btn-enviar-pedido" type="button">Enviar pedido por WhatsApp</button>
+    </div>
+  </div>
 
   <header>
     <img id="shop-logo-header" src="" alt="Logo">
@@ -169,6 +321,39 @@
             <span class="slider"></span>
           </label>
         </div>
+      </div>
+
+      <!-- CONTROLES HEADER (tamaño logo + spacing) -->
+      <div style="grid-column: 1 / -1; background:#fff; border:1px solid #ddd; padding:12px; border-radius:12px;">
+        <h4 style="margin-bottom:10px;">🖼️ Header: Logo y Espaciados</h4>
+
+        <label style="font-size:12px; font-weight:900;">Ancho del Logo: <span id="val-logo-size"></span>px</label>
+        <input id="ctrl-logo-size" type="range" min="60" max="700" step="5" value="240" style="width:100%; margin:6px 0 12px;">
+
+        <label style="font-size:12px; font-weight:900;">Separación Logo → Texto: <span id="val-header-gap"></span>px</label>
+        <input id="ctrl-header-gap" type="range" min="-30" max="80" step="1" value="12" style="width:100%; margin:6px 0 12px;">
+
+        <label style="font-size:12px; font-weight:900;">Subir/Bajar Nombre (H1): <span id="val-title-gap"></span>px</label>
+        <input id="ctrl-title-gap" type="range" min="-40" max="60" step="1" value="0" style="width:100%; margin:6px 0 12px;">
+
+        <label style="font-size:12px; font-weight:900;">Subir/Bajar Eslogan: <span id="val-slogan-gap"></span>px</label>
+        <input id="ctrl-slogan-gap" type="range" min="-40" max="60" step="1" value="0" style="width:100%; margin:6px 0 12px;">
+
+        <div style="display:flex; gap:16px; align-items:center; margin-top:10px; flex-wrap:wrap;">
+          <label style="display:flex; gap:8px; align-items:center; font-weight:900; font-size:12px;">
+            <input id="ctrl-wheel-sound" type="checkbox" checked>
+            Sonido de ruleta
+          </label>
+
+          <label style="display:flex; gap:8px; align-items:center; font-weight:900; font-size:12px;">
+            <input id="ctrl-cart-enabled" type="checkbox" checked>
+            Carrito habilitado
+          </label>
+        </div>
+
+        <small style="display:block; margin-top:8px; opacity:.75;">
+          *Estos valores se guardan con “Guardar Cambios del Sistema”.
+        </small>
       </div>
 
       <div class="ruleta-config">
@@ -268,14 +453,14 @@
     <div id="catalogo-container" class="grid-cliente"></div>
   </div>
 
-  <!-- Firebase compat (NO module, ideal para GitHub Pages) -->
+  <!-- Firebase compat -->
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
 
   <script>
     /********************
-     * PROTECCIÓN anti “pantalla blanca”
+     * Anti “pantalla blanca”
      ********************/
     function fatal(err) {
       console.error(err);
@@ -293,9 +478,9 @@
      * CONFIG
      ********************/
     const TEL_WHATSAPP = "18097530456";
-    const PATH_DB = "catalogo_v1"; // tu ruta actual en RTDB
+    const PATH_DB = "catalogo_v1";
+    const ADMIN_EMAIL = "joel_ahg13@hotmail.com";
 
-    // ✅ Tu config (el tuyo está bien, pégalo igual)
     const firebaseConfig = {
       apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
       authDomain: "h-essence-shop.firebaseapp.com",
@@ -311,7 +496,7 @@
      ********************/
     let estaGirando = false;
     let currentImg = "";
-    let esAdmin = false;  // 🔒 por defecto: CLIENTE
+    let esAdmin = false;
     let guardando = false;
 
     const defaultDB = {
@@ -323,7 +508,15 @@
       premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"],
       tipos: ["win", "lose", "win", "lose"],
       colorTextoRuleta: "#FFFFFF",
-      colorFlecha: "#1A1A1A"
+      colorFlecha: "#1A1A1A",
+
+      // Nuevos
+      logoSize: 240,
+      headerGap: 12,
+      titleGap: 0,
+      sloganGap: 0,
+      wheelSound: true,
+      cartEnabled: true
     };
 
     let db = loadLocal() || structuredClone(defaultDB);
@@ -353,26 +546,43 @@
       setTimeout(() => { toast.style.display = 'none'; }, 2500);
     }
 
-    function actualizarUIHeader() {
-      const nameInput = document.getElementById('input-shop-name');
-      const sloganInput = document.getElementById('input-shop-slogan');
+    function safeText(v) { return (v == null) ? "" : String(v); }
 
-      const nombre = nameInput ? (nameInput.value || "H-ESSENCE") : (db.nombreTienda || "H-ESSENCE");
-      const slogan = sloganInput ? (sloganInput.value || "Luxury Perfumery RD") : (db.slogan || "Luxury Perfumery RD");
+    /********************
+     * Header layout controls
+     ********************/
+    function aplicarLayoutHeader(){
+      const logo = document.getElementById('shop-logo-header');
+      const h1 = document.getElementById('shop-name-display');
+      const slog = document.getElementById('shop-slogan-display');
+      if (logo) {
+        logo.style.width = (db.logoSize ?? 240) + "px";
+        logo.style.maxWidth = "90%";
+        logo.style.marginBottom = (db.headerGap ?? 12) + "px";
+      }
+      if (h1) h1.style.marginTop = (db.titleGap ?? 0) + "px";
+      if (slog) slog.style.marginTop = (db.sloganGap ?? 0) + "px";
+    }
+
+    function actualizarUIHeader() {
+      const nombre = db.nombreTienda || "H-ESSENCE";
+      const slogan = db.slogan || "Luxury Perfumery RD";
 
       const h1 = document.getElementById('shop-name-display');
       const p = document.getElementById('shop-slogan-display');
       if (h1) h1.innerText = nombre;
       if (p) p.innerText = slogan;
 
-      // logo
       const logoHeader = document.getElementById('shop-logo-header');
       const logoBg = document.getElementById('bg-logo');
+
       if (db.logo && logoHeader) {
         logoHeader.src = db.logo;
         logoHeader.style.display = "inline-block";
       }
       if (db.logo && logoBg) logoBg.src = db.logo;
+
+      aplicarLayoutHeader();
     }
 
     function actualizarColorFlecha(color) {
@@ -381,30 +591,32 @@
       if (flecha) flecha.style.borderTopColor = color;
     }
 
-    function safeText(v) { return (v == null) ? "" : String(v); }
-
     /********************
-     * ADMIN / CLIENTE
+     * Admin / Cliente
      ********************/
     function setModoAdmin(on) {
       esAdmin = !!on;
 
       const panel = document.getElementById('panel-admin');
-      const cliente = document.getElementById('seccion-cliente');
       const toggle = document.getElementById('toggle-view');
 
       if (panel) panel.classList.toggle('hidden', !esAdmin);
-      if (cliente) cliente.classList.toggle('hidden', false); // cliente siempre visible
       if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
 
       if (toggle) toggle.innerText = "👁️ Vista: Administrador";
+
+      // bloquear edición UI para clientes (por seguridad visual)
+      if (!esAdmin) {
+        // fuerza cierre panel
+        if (panel) panel.classList.add('hidden');
+      }
+
       render();
       dibujarRuleta();
     }
 
-    // Botón toggle: solo alterna entre ver admin panel o solo cliente (pero el cliente real nunca lo ve)
     function cambiarVista() {
-      if (!esAdmin) return; // seguridad
+      if (!esAdmin) return;
       const panel = document.getElementById('panel-admin');
       const toggle = document.getElementById('toggle-view');
       const oculto = panel ? panel.classList.contains('hidden') : true;
@@ -413,18 +625,15 @@
       if (toggle) toggle.innerText = oculto ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
     }
 
-    // Entrar como admin SOLO si visitas:  .../index.html#admin
     async function intentarLoginAdminSiAplica() {
       if (location.hash !== "#admin") return;
-
-      const email = prompt("Email admin:");
-      if (!email) return;
       const pass = prompt("Contraseña admin:");
       if (!pass) return;
 
       try {
-        await firebase.auth().signInWithEmailAndPassword(email, pass);
+        await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
         setModoAdmin(true);
+        cargarInputsAdmin();
         mostrarAlerta("✅ Modo administrador activado");
       } catch (e) {
         console.error(e);
@@ -434,7 +643,132 @@
     }
 
     /********************
-     * IMÁGENES
+     * Firebase RTDB
+     ********************/
+    firebase.initializeApp(firebaseConfig);
+    const rdb = firebase.database();
+
+    function escucharNube() {
+      rdb.ref(PATH_DB).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && typeof data === 'object') {
+          // Mezcla segura para no perder nuevos campos
+          db = { ...structuredClone(defaultDB), ...data };
+          saveLocal();
+          cargarInputsAdmin();
+          actualizarUIHeader();
+          dibujarRuleta();
+          render();
+        }
+      });
+    }
+
+    async function guardarNube() {
+      if (!esAdmin) return;
+      if (guardando) return;
+      guardando = true;
+      try {
+        await rdb.ref(PATH_DB).set(db);
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ No se pudo guardar en la nube (permiso)", "error");
+      } finally {
+        guardando = false;
+      }
+    }
+
+    /********************
+     * Controles Admin (inputs)
+     ********************/
+    function cargarInputsAdmin() {
+      // si no existe panel, no hace nada
+      const shopNameEl = document.getElementById('input-shop-name');
+      if(shopNameEl) shopNameEl.value = db.nombreTienda || "H-ESSENCE";
+      const sloganEl = document.getElementById('input-shop-slogan');
+      if(sloganEl) sloganEl.value = db.slogan || "Luxury Perfumery RD";
+
+      const checkRuleta = document.getElementById('ruleta-visible-check');
+      if(checkRuleta) checkRuleta.checked = !!db.ruletaVisible;
+
+      const wheelTextEl = document.getElementById('wheel-text-color');
+      if(wheelTextEl) wheelTextEl.value = db.colorTextoRuleta || "#FFFFFF";
+
+      const wheelArrowEl = document.getElementById('wheel-arrow-color');
+      if(wheelArrowEl) wheelArrowEl.value = db.colorFlecha || "#1A1A1A";
+
+      for(let i=0; i<4; i++) {
+        const pInput = document.getElementById('p'+(i+1));
+        const tInput = document.getElementById('t'+(i+1));
+        if(pInput) pInput.value = (db.premios && db.premios[i]) ? db.premios[i] : defaultDB.premios[i];
+        if(tInput) tInput.value = (db.tipos && db.tipos[i]) ? db.tipos[i] : defaultDB.tipos[i];
+      }
+
+      // Header sliders
+      const sLogo = document.getElementById('ctrl-logo-size');
+      const sGap = document.getElementById('ctrl-header-gap');
+      const sT = document.getElementById('ctrl-title-gap');
+      const sS = document.getElementById('ctrl-slogan-gap');
+      const chkSound = document.getElementById('ctrl-wheel-sound');
+      const chkCart = document.getElementById('ctrl-cart-enabled');
+
+      if(sLogo) sLogo.value = db.logoSize ?? 240;
+      if(sGap) sGap.value = db.headerGap ?? 12;
+      if(sT) sT.value = db.titleGap ?? 0;
+      if(sS) sS.value = db.sloganGap ?? 0;
+      if(chkSound) chkSound.checked = !!db.wheelSound;
+      if(chkCart) chkCart.checked = !!db.cartEnabled;
+
+      syncHeaderSliderLabels();
+      aplicarLayoutHeader();
+    }
+
+    function syncHeaderSliderLabels(){
+      const sLogo = document.getElementById('ctrl-logo-size');
+      const sGap = document.getElementById('ctrl-header-gap');
+      const sT = document.getElementById('ctrl-title-gap');
+      const sS = document.getElementById('ctrl-slogan-gap');
+
+      const vLogo = document.getElementById('val-logo-size');
+      const vGap = document.getElementById('val-header-gap');
+      const vT = document.getElementById('val-title-gap');
+      const vS = document.getElementById('val-slogan-gap');
+
+      if (vLogo && sLogo) vLogo.textContent = sLogo.value;
+      if (vGap && sGap) vGap.textContent = sGap.value;
+      if (vT && sT) vT.textContent = sT.value;
+      if (vS && sS) vS.textContent = sS.value;
+    }
+
+    function activarSlidersHeader(){
+      const sLogo = document.getElementById('ctrl-logo-size');
+      const sGap = document.getElementById('ctrl-header-gap');
+      const sT = document.getElementById('ctrl-title-gap');
+      const sS = document.getElementById('ctrl-slogan-gap');
+      const chkSound = document.getElementById('ctrl-wheel-sound');
+      const chkCart = document.getElementById('ctrl-cart-enabled');
+
+      function apply(){
+        if (sLogo) db.logoSize = parseInt(sLogo.value, 10);
+        if (sGap) db.headerGap = parseInt(sGap.value, 10);
+        if (sT) db.titleGap = parseInt(sT.value, 10);
+        if (sS) db.sloganGap = parseInt(sS.value, 10);
+        if (chkSound) db.wheelSound = !!chkSound.checked;
+        if (chkCart) db.cartEnabled = !!chkCart.checked;
+
+        syncHeaderSliderLabels();
+        aplicarLayoutHeader();
+        render(); // para ocultar/mostrar carrito
+      }
+
+      [sLogo, sGap, sT, sS].forEach(el => el && el.addEventListener('input', apply));
+      chkSound && chkSound.addEventListener('change', apply);
+      chkCart && chkCart.addEventListener('change', apply);
+
+      apply();
+    }
+
+    /********************
+     * Imágenes
      ********************/
     function handleFile(file) {
       if (!file || !file.type.startsWith('image/')) return;
@@ -467,22 +801,23 @@
       if (!file || !file.type.startsWith("image/")) return;
 
       const reader = new FileReader();
-      reader.onload = async (e) => {
-        // compresión simple para no reventar storage local / RTDB
+      reader.onload = (e) => {
+        // Compresión WebP
         const img = new Image();
         img.onload = async () => {
           const canvas = document.createElement('canvas');
-          const MAX = 500;
+          const MAX = 600;
           const scale = Math.min(1, MAX / img.width);
           canvas.width = Math.round(img.width * scale);
           canvas.height = Math.round(img.height * scale);
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          db.logo = canvas.toDataURL('image/webp', 0.78);
+          db.logo = canvas.toDataURL('image/webp', 0.80);
 
           saveLocal();
           actualizarUIHeader();
-          await guardarNube(); // nube
+          await guardarNube();
+          mostrarAlerta("✅ Logo actualizado");
         };
         img.src = e.target.result;
       };
@@ -490,7 +825,7 @@
     }
 
     /********************
-     * VISTA PREVIA
+     * Vista previa
      ********************/
     function updateLivePreview() {
       const preview = document.getElementById('live-preview');
@@ -520,7 +855,7 @@
     }
 
     /********************
-     * PRODUCTOS
+     * Productos
      ********************/
     function resetForm() {
       const ids = ['referencia','nombre','onzas','venta','costo','stock-cantidad'];
@@ -560,6 +895,7 @@
 
       if(!p.nombre) { mostrarAlerta("❌ Nombre de perfume requerido", "error"); return; }
 
+      if (!Array.isArray(db.productos)) db.productos = [];
       if(id) {
         const i = db.productos.findIndex(x => x.id === p.id);
         if (i >= 0) db.productos[i] = p;
@@ -578,7 +914,8 @@
     async function borrar(id) {
       if (!esAdmin) return;
       if(!confirm("¿Eliminar este producto?")) return;
-      db.productos = db.productos.filter(x => x.id !== id);
+
+      db.productos = (db.productos || []).filter(x => x.id !== id);
       saveLocal();
       render();
       await guardarNube();
@@ -587,7 +924,7 @@
 
     function editar(id) {
       if (!esAdmin) return;
-      const p = db.productos.find(x => x.id === id);
+      const p = (db.productos || []).find(x => x.id === id);
       if(!p) return;
 
       document.getElementById('edit-id').value = p.id;
@@ -626,7 +963,7 @@
     }
 
     /********************
-     * SISTEMA (guardar config)
+     * Guardar sistema (incluye header controls + ruleta + carrito settings)
      ********************/
     async function guardarTodo() {
       if (!esAdmin) return;
@@ -653,6 +990,21 @@
         safeText(document.getElementById('t4')?.value || "lose")
       ];
 
+      // header sliders
+      const sLogo = document.getElementById('ctrl-logo-size');
+      const sGap = document.getElementById('ctrl-header-gap');
+      const sT = document.getElementById('ctrl-title-gap');
+      const sS = document.getElementById('ctrl-slogan-gap');
+      const chkSound = document.getElementById('ctrl-wheel-sound');
+      const chkCart = document.getElementById('ctrl-cart-enabled');
+
+      if (sLogo) db.logoSize = parseInt(sLogo.value, 10);
+      if (sGap) db.headerGap = parseInt(sGap.value, 10);
+      if (sT) db.titleGap = parseInt(sT.value, 10);
+      if (sS) db.sloganGap = parseInt(sS.value, 10);
+      if (chkSound) db.wheelSound = !!chkSound.checked;
+      if (chkCart) db.cartEnabled = !!chkCart.checked;
+
       saveLocal();
       actualizarUIHeader();
       actualizarColorFlecha(db.colorFlecha);
@@ -664,7 +1016,7 @@
     }
 
     /********************
-     * RULETA
+     * Ruleta
      ********************/
     function dibujarRuleta() {
       const canvas = document.getElementById('canvas-ruleta');
@@ -692,13 +1044,64 @@
         ctx.restore();
       }
 
-      // flecha
       actualizarColorFlecha(db.colorFlecha || "#1A1A1A");
+    }
+
+    // Sonido de ruleta tipo “tick” con WebAudio (sin archivos)
+    let audioCtx = null;
+    function ensureAudio(){
+      if (audioCtx) return audioCtx;
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtx = new Ctx();
+      return audioCtx;
+    }
+    function tickSound(){
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "square";
+      o.frequency.value = 1200;
+      g.gain.value = 0.0001;
+      o.connect(g);
+      g.connect(ctx.destination);
+
+      const now = ctx.currentTime;
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.07, now + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+      o.start(now);
+      o.stop(now + 0.04);
+    }
+    async function playRuletaSoundFor(durationMs){
+      if (!db.wheelSound) return;
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      if (ctx.state === "suspended") { try { await ctx.resume(); } catch {} }
+
+      const start = Date.now();
+      let interval = 70;
+      let timer = null;
+
+      const tickLoop = () => {
+        tickSound();
+        const t = Date.now() - start;
+        const k = Math.min(1, t / durationMs);
+        interval = Math.min(240, Math.round(70 + k * 190));
+        timer = setTimeout(tickLoop, interval);
+      };
+
+      tickLoop();
+      setTimeout(() => { if (timer) clearTimeout(timer); }, durationMs + 80);
     }
 
     function girarRuleta() {
       if(estaGirando) return;
       estaGirando = true;
+
+      // sonido
+      try { playRuletaSoundFor(4100); } catch {}
 
       const canvas = document.getElementById('canvas-ruleta');
       const btn = document.getElementById('btn-girar');
@@ -725,7 +1128,7 @@
     }
 
     /********************
-     * RENDER
+     * Render
      ********************/
     function render() {
       const query = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
@@ -762,10 +1165,10 @@
           </tr>`;
         }
 
-        // catálogo cliente (buscador)
+        if (!catalogo) return;
+
         const ref = safeText(p.ref).toLowerCase();
         const nom = safeText(p.nombre).toLowerCase();
-        if (!catalogo) return;
         if (nom.includes(query) || ref.includes(query)) {
           const badgeStockCard = p.dispo === 'inmediata'
             ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
@@ -774,6 +1177,10 @@
           const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
           const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
 
+          const productUrl = window.location.href.split('#')[0]; // catálogo (sin #admin)
+          const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
+          const waShare = `https://wa.me/?text=${shareText}`;
+
           catalogo.innerHTML += `
             <div class="card">
               ${badgeStockCard}
@@ -781,17 +1188,209 @@
               <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
               <h3>${safeText(p.nombre)}</h3>
               <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
+
               <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank"
-                style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">
+                style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold; width:100%;">
                 WhatsApp
               </a>
+
+              ${db.cartEnabled ? `<button class="btn-add-cart" type="button" onclick="addToCart(${p.id})">➕ Agregar al carrito</button>` : ``}
+
+              <button class="btn-share-product" type="button" onclick="shareProduct('${waShare}', '${safeText(p.nombre).replace(/'/g,"\\'")}')">🔗 Compartir este producto</button>
             </div>`;
         }
       });
+
+      // UI carrito
+      document.getElementById('btn-cart').style.display = db.cartEnabled ? "block" : "none";
+      if (!db.cartEnabled) {
+        document.getElementById('cart-panel').style.display = "none";
+      }
+
+      actualizarBadgeCart();
     }
 
     /********************
-     * DRAG & DROP
+     * Compartir catálogo + producto
+     ********************/
+    async function shareCatalog(){
+      const url = window.location.href.split('#')[0];
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: db.nombreTienda || "H-ESSENCE",
+            text: "Mira nuestro catálogo",
+            url
+          });
+          return;
+        } catch {}
+      }
+      const texto = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMira nuestro catálogo:\n${url}`);
+      window.open(`https://wa.me/?text=${texto}`, '_blank');
+    }
+
+    async function shareProduct(waShareUrl, nombre){
+      // Intento nativo
+      const url = window.location.href.split('#')[0];
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: nombre || "Producto",
+            text: `Mira este producto en ${db.nombreTienda || 'H-ESSENCE'}`,
+            url
+          });
+          return;
+        } catch {}
+      }
+      // Fallback WhatsApp
+      window.open(waShareUrl, "_blank");
+    }
+
+    /********************
+     * Carrito
+     ********************/
+    let cart = JSON.parse(localStorage.getItem("h_cart_v1") || "[]"); // [{id, qty}]
+    function saveCart(){ localStorage.setItem("h_cart_v1", JSON.stringify(cart)); actualizarBadgeCart(); }
+    function getCartQty(){ return cart.reduce((a, it) => a + (it.qty || 0), 0); }
+
+    function actualizarBadgeCart(){
+      const btn = document.getElementById('btn-cart');
+      if (!btn) return;
+      const qty = getCartQty();
+      btn.textContent = qty > 0 ? `🛒 Carrito (${qty})` : "🛒 Carrito";
+    }
+
+    function addToCart(productId){
+      if (!db.cartEnabled) return;
+      const existing = cart.find(x => x.id === productId);
+      if (existing) existing.qty += 1;
+      else cart.push({ id: productId, qty: 1 });
+      saveCart();
+      abrirCarrito();
+    }
+
+    function decCart(productId){
+      const it = cart.find(x => x.id === productId);
+      if (!it) return;
+      it.qty -= 1;
+      if (it.qty <= 0) cart = cart.filter(x => x.id !== productId);
+      saveCart();
+      renderCarrito();
+    }
+
+    function incCart(productId){
+      const it = cart.find(x => x.id === productId);
+      if (!it) return;
+      it.qty += 1;
+      saveCart();
+      renderCarrito();
+    }
+
+    function delCart(productId){
+      cart = cart.filter(x => x.id !== productId);
+      saveCart();
+      renderCarrito();
+    }
+
+    function vaciarCarrito(){
+      cart = [];
+      saveCart();
+      renderCarrito();
+    }
+
+    function abrirCarrito(){
+      const panel = document.getElementById('cart-panel');
+      panel.style.display = 'block';
+      renderCarrito();
+    }
+
+    function cerrarCarrito(){
+      const panel = document.getElementById('cart-panel');
+      panel.style.display = 'none';
+    }
+
+    function renderCarrito(){
+      const box = document.getElementById('cart-items');
+      const totalEl = document.getElementById('cart-total');
+      if (!box || !totalEl) return;
+
+      const productos = Array.isArray(db.productos) ? db.productos : [];
+      let total = 0;
+
+      box.innerHTML = "";
+      if (cart.length === 0) {
+        box.innerHTML = `<div style="padding:14px; opacity:.7;">Tu carrito está vacío.</div>`;
+        totalEl.textContent = "RD$ 0";
+        return;
+      }
+
+      cart.forEach(it => {
+        const p = productos.find(x => x.id === it.id);
+        if (!p) return;
+        const sub = (p.venta || 0) * (it.qty || 0);
+        total += sub;
+
+        const row = document.createElement('div');
+        row.className = 'cart-row';
+        row.innerHTML = `
+          <img src="${p.img || 'https://via.placeholder.com/120'}" alt="">
+          <div class="info">
+            <b>${safeText(p.nombre)}</b>
+            <small>${safeText(p.onzas)} • RD$ ${p.venta || 0}</small>
+          </div>
+          <div class="qty">
+            <button class="btn-minus" type="button">−</button>
+            <b>${it.qty}</b>
+            <button class="btn-plus" type="button">+</button>
+            <button class="btn-del" type="button">🗑️</button>
+          </div>
+        `;
+        row.querySelector('.btn-minus').onclick = () => decCart(p.id);
+        row.querySelector('.btn-plus').onclick = () => incCart(p.id);
+        row.querySelector('.btn-del').onclick = () => delCart(p.id);
+
+        box.appendChild(row);
+      });
+
+      totalEl.textContent = `RD$ ${total}`;
+    }
+
+    function enviarPedidoWhatsApp(){
+      const productos = Array.isArray(db.productos) ? db.productos : [];
+      if (cart.length === 0) { alert("Tu carrito está vacío."); return; }
+
+      const nota = safeText(document.getElementById('cart-note')?.value || "").trim();
+
+      let total = 0;
+      let lines = [];
+      lines.push(`🛒 *Pedido - ${db.nombreTienda || 'H-ESSENCE'}*`);
+      lines.push(``);
+
+      cart.forEach(it => {
+        const p = productos.find(x => x.id === it.id);
+        if (!p) return;
+        const sub = (p.venta || 0) * (it.qty || 0);
+        total += sub;
+        lines.push(`• ${it.qty}x _${safeText(p.nombre)}_ (${safeText(p.onzas)}) — RD$ ${sub}`);
+      });
+
+      lines.push(``);
+      lines.push(`*TOTAL:* RD$ ${total}`);
+
+      if (nota) {
+        lines.push(``);
+        lines.push(`📝 *Nota:* ${nota}`);
+      }
+
+      lines.push(``);
+      lines.push(`¿Me confirmas disponibilidad y método de entrega?`);
+
+      const msg = encodeURIComponent(lines.join("\n"));
+      window.open(`https://wa.me/${TEL_WHATSAPP}?text=${msg}`, "_blank");
+    }
+
+    /********************
+     * Drag & Drop
      ********************/
     function activarDragDrop() {
       const dropZone = document.getElementById('drop-zone');
@@ -816,86 +1415,39 @@
     }
 
     /********************
-     * FIREBASE RTDB
+     * Eventos UI
      ********************/
-    firebase.initializeApp(firebaseConfig);
-    const rdb = firebase.database();
+    document.getElementById('btn-compartir-catalogo').addEventListener('click', shareCatalog);
 
-    function escucharNube() {
-      rdb.ref(PATH_DB).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data && typeof data === 'object') {
-          db = { ...structuredClone(defaultDB), ...data };
-          saveLocal();
-          // refrescar UI
-          cargarInputsAdmin();
-          actualizarUIHeader();
-          dibujarRuleta();
-          render();
-        }
-      });
-    }
-
-    async function guardarNube() {
-      if (!esAdmin) return;
-      if (guardando) return;
-      guardando = true;
-      try {
-        await rdb.ref(PATH_DB).set(db);
-      } catch (e) {
-        console.error(e);
-        mostrarAlerta("❌ No se pudo guardar en la nube (permiso)", "error");
-      } finally {
-        guardando = false;
-      }
-    }
+    document.getElementById('btn-cart').addEventListener('click', () => {
+      const panel = document.getElementById('cart-panel');
+      panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+      renderCarrito();
+    });
+    document.getElementById('btn-close-cart').addEventListener('click', cerrarCarrito);
+    document.getElementById('btn-vaciar').addEventListener('click', () => { vaciarCarrito(); });
+    document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoWhatsApp);
 
     /********************
-     * CARGA INPUTS ADMIN DESDE DB
-     ********************/
-    function cargarInputsAdmin() {
-      // solo si existe panel
-      const shopNameEl = document.getElementById('input-shop-name');
-      if(shopNameEl) shopNameEl.value = db.nombreTienda || "H-ESSENCE";
-      const sloganEl = document.getElementById('input-shop-slogan');
-      if(sloganEl) sloganEl.value = db.slogan || "Luxury Perfumery RD";
-      const checkRuleta = document.getElementById('ruleta-visible-check');
-      if(checkRuleta) checkRuleta.checked = !!db.ruletaVisible;
-
-      const wheelTextEl = document.getElementById('wheel-text-color');
-      if(wheelTextEl) wheelTextEl.value = db.colorTextoRuleta || "#FFFFFF";
-      const wheelArrowEl = document.getElementById('wheel-arrow-color');
-      if(wheelArrowEl) wheelArrowEl.value = db.colorFlecha || "#1A1A1A";
-
-      for(let i=0; i<4; i++) {
-        const pInput = document.getElementById('p'+(i+1));
-        const tInput = document.getElementById('t'+(i+1));
-        if(pInput) pInput.value = (db.premios && db.premios[i]) ? db.premios[i] : defaultDB.premios[i];
-        if(tInput) tInput.value = (db.tipos && db.tipos[i]) ? db.tipos[i] : defaultDB.tipos[i];
-      }
-    }
-
-    /********************
-     * INICIO
+     * Inicio
      ********************/
     window.addEventListener('load', async () => {
       try {
-        // iniciar en modo cliente SIEMPRE
         setModoAdmin(false);
-
-        // cargar header con lo local mientras llega nube
         actualizarUIHeader();
         dibujarRuleta();
         render();
         updateLivePreview();
         activarDragDrop();
+        activarSlidersHeader(); // sliders funcionan, pero solo se guardan si eres admin
 
-        // escuchar nube (clientes se actualizan solos)
         escucharNube();
-
-        // si entras con #admin, pide login y muestra panel
         await intentarLoginAdminSiAplica();
-        if (esAdmin) cargarInputsAdmin();
+        if (esAdmin) {
+          cargarInputsAdmin();
+          activarSlidersHeader();
+        }
+        actualizarBadgeCart();
 
       } catch (e) {
         fatal(e);
@@ -903,7 +1455,7 @@
     });
 
     /********************
-     * EXPONER FUNCIONES
+     * Exponer funciones globales (para onclick del HTML)
      ********************/
     window.cambiarVista = cambiarVista;
     window.guardarTodo = guardarTodo;
@@ -915,11 +1467,14 @@
     window.handleFile = handleFile;
     window.quitarFoto = quitarFoto;
     window.updateLivePreview = updateLivePreview;
-    window.actualizarUIHeader = actualizarUIHeader;
     window.actualizarColorFlecha = actualizarColorFlecha;
     window.dibujarRuleta = dibujarRuleta;
     window.girarRuleta = girarRuleta;
     window.render = render;
+
+    // carrito / compartir producto
+    window.addToCart = addToCart;
+    window.shareProduct = shareProduct;
   </script>
 </body>
 </html>
