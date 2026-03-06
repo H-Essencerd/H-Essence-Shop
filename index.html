@@ -1,163 +1,925 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>H-Essence | Catálogo</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-:root {
-    --dorado: #D4AF37; --negro: #1A1A1A; --crema: #F9F7F2;
-    --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32; 
-    --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
-}
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-body { background-color: var(--crema); color: var(--negro); min-height: 100vh; padding-bottom:50px; }
-header { text-align:center; padding:2rem 1rem; background: var(--negro); color: var(--dorado); border-bottom:5px solid var(--dorado);}
-header h1 { font-family:'Playfair Display', serif; font-size:2.5rem; letter-spacing:4px; text-transform:uppercase; }
-#shop-logo-header { max-height:120px; width:auto; margin-bottom:10px; display:inline-block; object-fit:contain;}
-.grid-cliente { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; padding:20px; }
-.card { background:white; padding:15px; border-radius:15px; box-shadow:0 4px 8px rgba(0,0,0,0.1); text-align:center; position:relative; }
-.card img { width:100%; height:250px; object-fit:cover; border-radius:10px; margin-bottom:10px;}
-.badge-dispo { padding:4px 8px; border-radius:5px; font-size:0.65rem; font-weight:bold; text-transform:uppercase; display:inline-block;}
-.bg-inmediata { background: var(--ganancia); color:white; }
-.bg-pedido { background: var(--azul-edit); color:white;}
-.badge-size { background: var(--negro); color: var(--dorado); padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:bold; position:absolute; top:15px; right:15px; z-index:10; }
-#search-input { max-width:400px; border:2px solid var(--dorado); border-radius:20px; padding:10px; margin-bottom:20px;}
-.ruleta-box { text-align:center; margin:40px auto; max-width:400px; position:relative; padding:20px; }
-.ruleta-flecha { position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:20px solid transparent; border-right:20px solid transparent; border-top:40px solid var(--negro); pointer-events:none; }
-#canvas-ruleta { border-radius:50%; border:8px solid var(--negro); transition: transform 4s cubic-bezier(0.1,0,0,1);}
-.hidden { display:none !important; }
-</style>
-</head>
-<body>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H-Essence | Gestión VIP RD</title>
 
-<header>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root {
+      --dorado: #D4AF37; --negro: #1A1A1A; --crema: #F9F7F2;
+      --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32;
+      --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    body { background-color: var(--crema); color: var(--negro); padding-bottom: 50px; min-height: 100vh; }
+
+    #bg-logo {
+      position: fixed; top: 55%; left: 50%; transform: translate(-50%, -50%);
+      width: 90vw; max-width: 800px; opacity: 0.08; z-index: -1; pointer-events: none; object-fit: contain;
+    }
+
+    header {
+      background-color: var(--negro); color: var(--dorado);
+      padding: 2rem 1rem; text-align: center; border-bottom: 5px solid var(--dorado);
+      display: flex; flex-direction: column; align-items: center; position: relative; z-index: 10;
+    }
+    #shop-logo-header { max-height: 120px; width: auto; max-width: 90%; object-fit: contain; margin-bottom: 15px; display: none; }
+    header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 4px; text-transform: uppercase; }
+
+    .admin-section {
+      max-width: 1200px; margin: 20px auto; background: rgba(255, 255, 255, 0.95);
+      padding: 20px; border-radius: 15px; border: 2px dashed var(--dorado);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; z-index: 20;
+    }
+
+    #drop-zone {
+      border: 2px dashed var(--dorado); padding: 40px; text-align: center;
+      border-radius: 10px; background: #fffcf5; cursor: pointer; transition: 0.3s;
+      margin-bottom: 10px; font-weight: bold; position: relative;
+    }
+    #drop-zone.dragover { background: #f0e6cc; border-style: solid; transform: scale(1.02); }
+
+    .btn-remove-img {
+      position: absolute; top: 5px; right: 5px; background: var(--rojo-lose);
+      color: white; border: none; border-radius: 50%; width: 25px; height: 25px;
+      cursor: pointer; font-weight: bold; display: none; z-index: 5;
+    }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
+    input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: var(--dorado); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
+
+    .btn-add { background: var(--ganancia); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
+    .btn-update { background: var(--azul-edit); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
+
+    .btn-save-all {
+      background: var(--dorado); color: var(--negro); border: none; padding: 15px;
+      cursor: pointer; border-radius: 8px; font-weight: 800; grid-column: 1 / -1;
+      margin-top: 10px; border: 2px solid var(--negro); text-transform: uppercase;
+    }
+    .btn-export-excel {
+      background: #1D6F42; color: white; border: none; padding: 15px;
+      cursor: pointer; border-radius: 8px; font-weight: 800; grid-column: 1 / -1;
+      margin-top: 5px; text-transform: uppercase;
+    }
+
+    .ruleta-config {
+      background: #fdfaf0; border: 1px solid var(--dorado); border-radius: 10px;
+      padding: 15px; margin-top: 20px; grid-column: 1 / -1;
+    }
+    .casilla-config { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 8px; }
+
+    .preview-container {
+      grid-column: 1 / -1; margin-top: 20px; padding: 15px;
+      background: #f0f0f0; border-radius: 10px; text-align: center;
+      border: 1px solid #ccc;
+    }
+    .preview-box { max-width: 300px; margin: 10px auto; }
+
+    .ruleta-box { text-align: center; margin: 40px auto; max-width: 400px; position: relative; padding: 20px; }
+    .canvas-container { position: relative; display: inline-block; }
+
+    .ruleta-flecha {
+      position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
+      width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent;
+      border-top: 40px solid var(--negro); z-index: 9000; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+      pointer-events: none;
+    }
+    #canvas-ruleta { border-radius: 50%; border: 8px solid var(--negro); transition: transform 4s cubic-bezier(0.1, 0, 0, 1); }
+
+    .table-container { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+    th { background: var(--negro); color: var(--dorado); padding: 12px; }
+    td { padding: 10px; border: 1px solid #eee; text-align: center; }
+
+    .badge-dispo { padding: 4px 8px; border-radius: 5px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; display: inline-block; }
+    .bg-inmediata { background: var(--ganancia); color: white; }
+    .bg-pedido { background: var(--azul-edit); color: white; }
+
+    .grid-cliente { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
+    .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; position: relative; }
+    .card img { width: 100%; height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
+
+    .badge-size { background: var(--negro); color: var(--dorado); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; position: absolute; top: 15px; right: 15px; z-index: 10; }
+    .badge-card-dispo { position: absolute; top: 15px; left: 15px; z-index: 10; }
+
+    .hidden { display: none !important; }
+
+    /* el botón toggle solo lo verá el admin */
+    #toggle-view { position: fixed; bottom: 20px; right: 20px; background: var(--negro); color: var(--dorado); padding: 12px 20px; border-radius: 50px; cursor: pointer; z-index: 1000; border: 2px solid var(--dorado); font-weight: bold; display:none; }
+
+    #toast-alert {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      background: var(--negro); color: var(--dorado); padding: 15px 40px;
+      border-radius: 50px; border: 2px solid var(--dorado); z-index: 9999;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: 800;
+      display: none; text-align: center; white-space: nowrap;
+    }
+
+    .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--dorado); }
+
+    /* mensaje visible si algo falla (evita blanco) */
+    #fatal {
+      display:none; max-width:900px; margin:30px auto; background:#fff; border:2px solid var(--rojo-lose);
+      border-radius:12px; padding:18px;
+    }
+    #fatal h3{ color:var(--rojo-lose); margin-bottom:8px; }
+    #fatal pre{ white-space:pre-wrap; font-size:12px; background:#f8f8f8; padding:10px; border-radius:10px; overflow:auto; }
+  </style>
+</head>
+
+<body>
+  <div id="toast-alert">✅ Configuración actualizada</div>
+  <div id="fatal">
+    <h3>⚠️ Error detectado</h3>
+    <p>Tu página no debe quedar en blanco. Aquí está el error para corregirlo rápido:</p>
+    <pre id="fatal-msg"></pre>
+  </div>
+
+  <img id="bg-logo" src="" alt="">
+  <button id="toggle-view" onclick="cambiarVista()">👁️ Vista: Administrador</button>
+
+  <header>
     <img id="shop-logo-header" src="" alt="Logo">
     <h1 id="shop-name-display">H-ESSENCE</h1>
     <p id="shop-slogan-display">Luxury Perfumery RD</p>
-</header>
+  </header>
 
-<div id="seccion-cliente">
-    <div id="box-ruleta-cliente" class="ruleta-box">
-        <div class="canvas-container">
-            <div class="ruleta-flecha" id="flecha-cliente"></div>
-            <canvas id="canvas-ruleta" width="300" height="300"></canvas>
+  <!-- PANEL ADMIN -->
+  <div id="panel-admin" class="admin-section hidden">
+    <h3>🛠️ PANEL DE ADMINISTRACIÓN</h3>
+
+    <div class="form-grid">
+      <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #ddd;">
+        <div><label><small>Nombre Tienda:</small></label><input type="text" id="input-shop-name" oninput="actualizarUIHeader()"></div>
+        <div><label><small>Eslogan:</small></label><input type="text" id="input-shop-slogan" oninput="actualizarUIHeader()"></div>
+        <div><label><small>Logo:</small></label><input type="file" accept="image/*" onchange="subirLogo(this.files[0])"></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <label><small>Activar Ruleta:</small></label>
+          <label class="switch">
+            <input type="checkbox" id="ruleta-visible-check">
+            <span class="slider"></span>
+          </label>
         </div>
-        <br>
-        <button id="btn-girar" onclick="girarRuleta()" style="background:var(--dorado); padding:15px 30px; border-radius:30px; border:2px solid var(--negro); cursor:pointer; font-weight:bold; margin-top:10px;">🎰 GIRAR RULETA</button>
+      </div>
+
+      <div class="ruleta-config">
+        <h4>🎡 Configuración de Ruleta</h4>
+        <div style="margin: 10px 0; display: flex; gap: 20px; align-items: center;">
+          <div>
+            <label><small>Color de Texto:</small></label>
+            <select id="wheel-text-color">
+              <option value="#FFFFFF">Blanco</option>
+              <option value="#000000">Negro</option>
+            </select>
+          </div>
+          <div>
+            <label><small>Color de Flecha:</small></label>
+            <input type="color" id="wheel-arrow-color" value="#1A1A1A" onchange="actualizarColorFlecha(this.value)" style="padding:0; width:40px; height:40px; border:none;">
+          </div>
+        </div>
+
+        <div id="casillas-container">
+          <div class="casilla-config">
+            <input type="text" id="p1" placeholder="Premio 1">
+            <select id="t1"><option value="win">Ganadora</option><option value="lose">Perdedora</option></select>
+          </div>
+          <div class="casilla-config">
+            <input type="text" id="p2" placeholder="Premio 2">
+            <select id="t2"><option value="lose">Perdedora</option><option value="win">Ganadora</option></select>
+          </div>
+          <div class="casilla-config">
+            <input type="text" id="p3" placeholder="Premio 3">
+            <select id="t3"><option value="win">Ganadora</option><option value="lose">Perdedora</option></select>
+          </div>
+          <div class="casilla-config">
+            <input type="text" id="p4" placeholder="Premio 4">
+            <select id="t4"><option value="lose">Perdedora</option><option value="win">Ganadora</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div id="drop-zone" style="grid-column: 1 / -1;" onclick="document.getElementById('foto-input').click()">
+        <button class="btn-remove-img" id="btn-del-img" onclick="quitarFoto(event)">X</button>
+        <span id="drop-text">📸 Arrastra o selecciona foto aquí</span>
+        <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
+      </div>
+
+      <input type="text" id="referencia" placeholder="Ref/SKU" oninput="updateLivePreview()">
+      <input type="text" id="nombre" placeholder="Nombre Perfume" oninput="updateLivePreview()">
+      <input type="text" id="onzas" placeholder="Tamaño (Ej: 100)" oninput="updateLivePreview()">
+
+      <select id="disponibilidad" onchange="updateLivePreview()">
+        <option value="inmediata">Entrega Inmediata</option>
+        <option value="pedido">Por Pedido</option>
+      </select>
+
+      <input type="number" id="venta" placeholder="Precio Venta RD$" oninput="updateLivePreview()">
+      <input type="number" id="costo" placeholder="Costo Compra RD$">
+      <input type="number" id="stock-cantidad" placeholder="Cantidad en Stock" value="1">
+
+      <input type="hidden" id="edit-id">
+      <button id="btn-add" class="btn-add" onclick="procesarProducto()">✅ AGREGAR A LA LISTA</button>
+      <button id="btn-update" class="btn-update hidden" onclick="procesarProducto()">💾 ACTUALIZAR ARTÍCULO</button>
+
+      <button class="btn-save-all" onclick="guardarTodo()">📌 Guardar Cambios del Sistema</button>
+      <button class="btn-export-excel" onclick="exportarAExcel()">📊 Exportar Inventario a Excel</button>
+
+      <div class="preview-container">
+        <small>VISTA PREVIA</small>
+        <div id="live-preview" class="preview-box"></div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Ref</th><th>Producto</th><th>Tam.</th><th>Estado</th><th>Stock</th><th>Costo</th><th>Venta</th><th>Ganancia $</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CLIENTE -->
+  <div id="seccion-cliente">
+    <div id="box-ruleta-cliente" class="ruleta-box">
+      <div class="canvas-container">
+        <div class="ruleta-flecha" id="flecha-cliente"></div>
+        <canvas id="canvas-ruleta" width="300" height="300"></canvas>
+      </div>
+      <br>
+      <button id="btn-girar" onclick="girarRuleta()" style="background:var(--dorado); padding:15px 30px; border-radius:30px; border:2px solid var(--negro); cursor:pointer; font-weight:bold; margin-top:10px;">🎰 GIRAR RULETA</button>
     </div>
 
     <div style="text-align:center; padding:20px;">
-        <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="render()">
+      <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="render()" style="max-width:400px; border:2px solid var(--dorado); border-radius: 20px;">
     </div>
     <div id="catalogo-container" class="grid-cliente"></div>
-</div>
+  </div>
 
-<script>
-const TEL_WHATSAPP = "18097530456";
-let estaGirando = false;
+  <!-- Firebase compat (NO module, ideal para GitHub Pages) -->
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
 
-// Base de datos
-let db = JSON.parse(localStorage.getItem('h_essence_final_db')) || {
-    productos: [],
-    nombreTienda: "H-ESSENCE",
-    slogan: "Luxury Perfumery RD",
-    logo: "",
-    ruletaVisible: false,
-    premios: ["PREMIO 1","INTENTA OTRA VEZ","PREMIO VIP","CASI!"],
-    tipos: ["win","lose","win","lose"],
-    colorTextoRuleta: "#FFFFFF",
-    colorFlecha: "#1A1A1A"
-};
+  <script>
+    /********************
+     * PROTECCIÓN anti “pantalla blanca”
+     ********************/
+    function fatal(err) {
+      console.error(err);
+      const box = document.getElementById('fatal');
+      const msg = document.getElementById('fatal-msg');
+      if (box && msg) {
+        msg.textContent = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+        box.style.display = 'block';
+      }
+    }
+    window.addEventListener('error', (e) => fatal(e.error || e.message));
+    window.addEventListener('unhandledrejection', (e) => fatal(e.reason));
 
-// Inicialización
-window.addEventListener('load', () => {
-    // Mostrar logo y nombre de tienda
-    if(db.logo) document.getElementById('shop-logo-header').src = db.logo;
-    document.getElementById('shop-name-display').innerText = db.nombreTienda;
-    document.getElementById('shop-slogan-display').innerText = db.slogan;
+    /********************
+     * CONFIG
+     ********************/
+    const TEL_WHATSAPP = "18097530456";
+    const PATH_DB = "catalogo_v1"; // tu ruta actual en RTDB
 
-    // Mostrar u ocultar ruleta
-    document.getElementById('box-ruleta-cliente').classList.toggle('hidden', !db.ruletaVisible);
+    // ✅ Tu config (el tuyo está bien, pégalo igual)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
+      authDomain: "h-essence-shop.firebaseapp.com",
+      databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
+      projectId: "h-essence-shop",
+      storageBucket: "h-essence-shop.firebasestorage.app",
+      messagingSenderId: "128450401838",
+      appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+    };
 
-    render();
-    dibujarRuleta();
-});
+    /********************
+     * ESTADO
+     ********************/
+    let estaGirando = false;
+    let currentImg = "";
+    let esAdmin = false;  // 🔒 por defecto: CLIENTE
+    let guardando = false;
 
-// Renderizar catálogo
-function render() {
-    const query = document.getElementById('search-input').value.toLowerCase();
-    const catalogo = document.getElementById('catalogo-container');
-    catalogo.innerHTML = "";
+    const defaultDB = {
+      productos: [],
+      nombreTienda: "H-ESSENCE",
+      slogan: "Luxury Perfumery RD",
+      logo: "",
+      ruletaVisible: false,
+      premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"],
+      tipos: ["win", "lose", "win", "lose"],
+      colorTextoRuleta: "#FFFFFF",
+      colorFlecha: "#1A1A1A"
+    };
 
-    db.productos.forEach(p => {
-        if(p.nombre.toLowerCase().includes(query) || p.ref.toLowerCase().includes(query)) {
-            const badgeStockCard = p.dispo==="inmediata"?'<span class="badge-dispo bg-inmediata">Entrega Inmediata</span>':'<span class="badge-dispo bg-pedido">Por Pedido</span>';
-            const wsMsg = `Hola, me interesa este perfume:%0A- *${p.nombre}* (${p.onzas})%0A- Estado: *${p.dispo}*%0A- Precio: RD$ ${p.venta}`;
-            catalogo.innerHTML += `
-            <div class="card">
-                ${badgeStockCard}
-                <span class="badge-size">${p.onzas}</span>
-                <img src="${p.img}">
-                <h3>${p.nombre}</h3>
-                <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta}</p>
-                <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">WhatsApp</a>
-            </div>`;
-        }
-    });
-}
+    let db = loadLocal() || structuredClone(defaultDB);
 
-// Ruleta
-function dibujarRuleta() {
-    const canvas = document.getElementById('canvas-ruleta');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const numSectores = 4;
-    const angulo = (Math.PI*2)/numSectores;
-    ctx.clearRect(0,0,300,300);
-    for(let i=0;i<numSectores;i++){
+    function loadLocal() {
+      try {
+        const raw = localStorage.getItem('h_essence_final_db');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveLocal() {
+      try { localStorage.setItem('h_essence_final_db', JSON.stringify(db)); } catch {}
+    }
+
+    function mostrarAlerta(msg, tipo = "exito") {
+      const toast = document.getElementById('toast-alert');
+      if(!toast) return;
+      toast.innerText = msg;
+      toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
+      toast.style.color = 'white';
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
+    function actualizarUIHeader() {
+      const nameInput = document.getElementById('input-shop-name');
+      const sloganInput = document.getElementById('input-shop-slogan');
+
+      const nombre = nameInput ? (nameInput.value || "H-ESSENCE") : (db.nombreTienda || "H-ESSENCE");
+      const slogan = sloganInput ? (sloganInput.value || "Luxury Perfumery RD") : (db.slogan || "Luxury Perfumery RD");
+
+      const h1 = document.getElementById('shop-name-display');
+      const p = document.getElementById('shop-slogan-display');
+      if (h1) h1.innerText = nombre;
+      if (p) p.innerText = slogan;
+
+      // logo
+      const logoHeader = document.getElementById('shop-logo-header');
+      const logoBg = document.getElementById('bg-logo');
+      if (db.logo && logoHeader) {
+        logoHeader.src = db.logo;
+        logoHeader.style.display = "inline-block";
+      }
+      if (db.logo && logoBg) logoBg.src = db.logo;
+    }
+
+    function actualizarColorFlecha(color) {
+      db.colorFlecha = color;
+      const flecha = document.getElementById('flecha-cliente');
+      if (flecha) flecha.style.borderTopColor = color;
+    }
+
+    function safeText(v) { return (v == null) ? "" : String(v); }
+
+    /********************
+     * ADMIN / CLIENTE
+     ********************/
+    function setModoAdmin(on) {
+      esAdmin = !!on;
+
+      const panel = document.getElementById('panel-admin');
+      const cliente = document.getElementById('seccion-cliente');
+      const toggle = document.getElementById('toggle-view');
+
+      if (panel) panel.classList.toggle('hidden', !esAdmin);
+      if (cliente) cliente.classList.toggle('hidden', false); // cliente siempre visible
+      if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
+
+      if (toggle) toggle.innerText = "👁️ Vista: Administrador";
+      render();
+      dibujarRuleta();
+    }
+
+    // Botón toggle: solo alterna entre ver admin panel o solo cliente (pero el cliente real nunca lo ve)
+    function cambiarVista() {
+      if (!esAdmin) return; // seguridad
+      const panel = document.getElementById('panel-admin');
+      const toggle = document.getElementById('toggle-view');
+      const oculto = panel ? panel.classList.contains('hidden') : true;
+
+      if (panel) panel.classList.toggle('hidden', !oculto);
+      if (toggle) toggle.innerText = oculto ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
+    }
+
+    // Entrar como admin SOLO si visitas:  .../index.html#admin
+    async function intentarLoginAdminSiAplica() {
+      if (location.hash !== "#admin") return;
+
+      const email = prompt("Email admin:");
+      if (!email) return;
+      const pass = prompt("Contraseña admin:");
+      if (!pass) return;
+
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+        setModoAdmin(true);
+        mostrarAlerta("✅ Modo administrador activado");
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ Login falló", "error");
+        setModoAdmin(false);
+      }
+    }
+
+    /********************
+     * IMÁGENES
+     ********************/
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentImg = e.target.result;
+        const dropText = document.getElementById('drop-text');
+        const delBtn = document.getElementById('btn-del-img');
+        if (dropText) dropText.innerText = "✅ Imagen Lista";
+        if (delBtn) delBtn.style.display = "block";
+        updateLivePreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function quitarFoto(e) {
+      if(e) e.stopPropagation();
+      currentImg = "";
+      const dropText = document.getElementById('drop-text');
+      const delBtn = document.getElementById('btn-del-img');
+      const input = document.getElementById('foto-input');
+      if (dropText) dropText.innerText = "📸 Arrastra o selecciona foto aquí";
+      if (delBtn) delBtn.style.display = "none";
+      if (input) input.value = "";
+      updateLivePreview();
+    }
+
+    function subirLogo(file) {
+      if (!esAdmin) return;
+      if (!file || !file.type.startsWith("image/")) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        // compresión simple para no reventar storage local / RTDB
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 500;
+          const scale = Math.min(1, MAX / img.width);
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          db.logo = canvas.toDataURL('image/webp', 0.78);
+
+          saveLocal();
+          actualizarUIHeader();
+          await guardarNube(); // nube
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    /********************
+     * VISTA PREVIA
+     ********************/
+    function updateLivePreview() {
+      const preview = document.getElementById('live-preview');
+      if(!preview) return;
+
+      const n = safeText(document.getElementById('nombre')?.value || "Nombre");
+      const v = safeText(document.getElementById('venta')?.value || "0");
+      let o = safeText(document.getElementById('onzas')?.value || "");
+      const disp = safeText(document.getElementById('disponibilidad')?.value || "inmediata");
+
+      if(o && !o.toLowerCase().includes('oz') && !o.toLowerCase().includes('ml')) o += " oz";
+
+      const badgeStock = disp === 'inmediata'
+        ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
+        : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
+
+      const img = currentImg || "https://via.placeholder.com/300";
+
+      preview.innerHTML = `
+        <div class="card">
+          ${badgeStock}
+          ${o ? `<span class="badge-size">${o}</span>` : ''}
+          <img src="${img}">
+          <h3>${n}</h3>
+          <p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p>
+        </div>`;
+    }
+
+    /********************
+     * PRODUCTOS
+     ********************/
+    function resetForm() {
+      const ids = ['referencia','nombre','onzas','venta','costo','stock-cantidad'];
+      const edit = document.getElementById('edit-id');
+      if (edit) edit.value = "";
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = (id === 'stock-cantidad') ? "1" : "";
+      });
+      const dispo = document.getElementById('disponibilidad');
+      if (dispo) dispo.value = "inmediata";
+      quitarFoto();
+
+      document.getElementById('btn-add')?.classList.remove('hidden');
+      document.getElementById('btn-update')?.classList.add('hidden');
+      updateLivePreview();
+    }
+
+    async function procesarProducto() {
+      if (!esAdmin) return;
+
+      const id = safeText(document.getElementById('edit-id')?.value);
+      let ozValue = safeText(document.getElementById('onzas')?.value || "");
+      if(ozValue && !ozValue.toLowerCase().includes('oz') && !ozValue.toLowerCase().includes('ml')) ozValue += " oz";
+
+      const p = {
+        id: id ? parseInt(id) : Date.now(),
+        ref: safeText(document.getElementById('referencia')?.value || "S/R"),
+        nombre: safeText(document.getElementById('nombre')?.value || ""),
+        onzas: ozValue || "N/A",
+        dispo: safeText(document.getElementById('disponibilidad')?.value || "inmediata"),
+        venta: parseFloat(document.getElementById('venta')?.value) || 0,
+        costo: parseFloat(document.getElementById('costo')?.value) || 0,
+        stock: parseInt(document.getElementById('stock-cantidad')?.value) || 0,
+        img: currentImg || "https://via.placeholder.com/300"
+      };
+
+      if(!p.nombre) { mostrarAlerta("❌ Nombre de perfume requerido", "error"); return; }
+
+      if(id) {
+        const i = db.productos.findIndex(x => x.id === p.id);
+        if (i >= 0) db.productos[i] = p;
+        else db.productos.push(p);
+      } else {
+        db.productos.push(p);
+      }
+
+      saveLocal();
+      render();
+      resetForm();
+      await guardarNube();
+      mostrarAlerta(id ? "✏️ Producto actualizado" : "📦 Producto añadido");
+    }
+
+    async function borrar(id) {
+      if (!esAdmin) return;
+      if(!confirm("¿Eliminar este producto?")) return;
+      db.productos = db.productos.filter(x => x.id !== id);
+      saveLocal();
+      render();
+      await guardarNube();
+      mostrarAlerta("🗑️ Producto eliminado", "error");
+    }
+
+    function editar(id) {
+      if (!esAdmin) return;
+      const p = db.productos.find(x => x.id === id);
+      if(!p) return;
+
+      document.getElementById('edit-id').value = p.id;
+      document.getElementById('referencia').value = p.ref;
+      document.getElementById('nombre').value = p.nombre;
+      document.getElementById('onzas').value = p.onzas;
+      document.getElementById('disponibilidad').value = p.dispo || "inmediata";
+      document.getElementById('venta').value = p.venta;
+      document.getElementById('costo').value = p.costo;
+      document.getElementById('stock-cantidad').value = p.stock || 0;
+
+      currentImg = p.img || "";
+      document.getElementById('btn-add')?.classList.add('hidden');
+      document.getElementById('btn-update')?.classList.remove('hidden');
+      if(currentImg) document.getElementById('btn-del-img').style.display = "block";
+      updateLivePreview();
+      window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    function exportarAExcel() {
+      if(!db.productos?.length) return alert("No hay productos");
+      const cleanData = db.productos.map(p => ({
+        Referencia: p.ref,
+        Nombre: p.nombre,
+        Tamaño: p.onzas,
+        Estado: p.dispo === 'inmediata' ? 'En Stock' : 'Por Pedido',
+        Stock: p.stock || 0,
+        Costo: p.costo,
+        Venta: p.venta,
+        Ganancia: (p.venta - p.costo)
+      }));
+      const ws = XLSX.utils.json_to_sheet(cleanData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Inventario");
+      XLSX.writeFile(wb, "H-Essence_Inventario.xlsx");
+    }
+
+    /********************
+     * SISTEMA (guardar config)
+     ********************/
+    async function guardarTodo() {
+      if (!esAdmin) return;
+
+      const nameVal = safeText(document.getElementById('input-shop-name')?.value);
+      if(!nameVal) { mostrarAlerta("❌ El nombre de la tienda es obligatorio", "error"); return; }
+
+      db.nombreTienda = nameVal;
+      db.slogan = safeText(document.getElementById('input-shop-slogan')?.value);
+      db.ruletaVisible = !!document.getElementById('ruleta-visible-check')?.checked;
+      db.colorTextoRuleta = safeText(document.getElementById('wheel-text-color')?.value || "#FFFFFF");
+      db.colorFlecha = safeText(document.getElementById('wheel-arrow-color')?.value || "#1A1A1A");
+
+      db.premios = [
+        safeText(document.getElementById('p1')?.value || "P1"),
+        safeText(document.getElementById('p2')?.value || "P2"),
+        safeText(document.getElementById('p3')?.value || "P3"),
+        safeText(document.getElementById('p4')?.value || "P4")
+      ];
+      db.tipos = [
+        safeText(document.getElementById('t1')?.value || "win"),
+        safeText(document.getElementById('t2')?.value || "lose"),
+        safeText(document.getElementById('t3')?.value || "win"),
+        safeText(document.getElementById('t4')?.value || "lose")
+      ];
+
+      saveLocal();
+      actualizarUIHeader();
+      actualizarColorFlecha(db.colorFlecha);
+      dibujarRuleta();
+      render();
+
+      await guardarNube();
+      mostrarAlerta("✅ Configuración del sistema actualizada");
+    }
+
+    /********************
+     * RULETA
+     ********************/
+    function dibujarRuleta() {
+      const canvas = document.getElementById('canvas-ruleta');
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const premios = Array.isArray(db.premios) ? db.premios : defaultDB.premios;
+      const colores = ["#D4AF37", "#1A1A1A", "#D4AF37", "#1A1A1A"];
+      ctx.clearRect(0,0,300,300);
+
+      for(let i=0; i<4; i++){
         ctx.beginPath();
+        ctx.fillStyle = colores[i];
         ctx.moveTo(150,150);
-        ctx.arc(150,150,145,i*angulo,(i+1)*angulo);
-        ctx.fillStyle = i%2===0?"#D4AF37":"#1A1A1A";
+        ctx.arc(150,150,140, i * Math.PI/2, (i+1) * Math.PI/2);
         ctx.fill();
+
         ctx.save();
         ctx.translate(150,150);
-        ctx.rotate(i*angulo+angulo/2);
-        ctx.fillStyle = db.colorTextoRuleta;
-        ctx.textAlign="right";
-        ctx.font="bold 11px Poppins";
-        ctx.fillText(db.premios[i] || "PREMIO "+(i+1),135,5);
+        ctx.rotate(i * Math.PI/2 + Math.PI/4);
+        ctx.fillStyle = db.colorTextoRuleta || "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.font = "bold 13px Poppins";
+        ctx.fillText(safeText(premios[i] || `PREMIO ${i+1}`), 75, 5);
         ctx.restore();
+      }
+
+      // flecha
+      actualizarColorFlecha(db.colorFlecha || "#1A1A1A");
     }
-    const logoDiv = document.getElementById('shop-logo-header');
-    if(logoDiv && db.logo) logoDiv.src = db.logo;
-}
 
-function girarRuleta() {
-    if(estaGirando) return;
-    estaGirando = true;
-    const canvas = document.getElementById('canvas-ruleta');
-    const btn = document.getElementById('btn-girar');
-    btn.disabled=true;
-    const vueltasExtra = 3600;
-    const gradosPremio = Math.floor(Math.random()*360);
-    let rotacionActual = vueltasExtra+gradosPremio;
-    canvas.style.transition='transform 4s cubic-bezier(0.1,0,0,1)';
-    canvas.style.transform=`rotate(${rotacionActual}deg)`;
-    setTimeout(()=>{
-        estaGirando=false;
-        btn.disabled=false;
-        const realDeg = rotacionActual%360;
-        const index=Math.floor(((360-realDeg+270)%360)/90)%4;
-        const premio=db.premios[index];
-        if(db.tipos[index]==="win") alert("🔥 ¡ENHORABUENA H-ESSENCE!: "+premio);
-        else alert("❌ Resultado: "+premio);
-    },4100);
-}
-</script>
+    function girarRuleta() {
+      if(estaGirando) return;
+      estaGirando = true;
 
+      const canvas = document.getElementById('canvas-ruleta');
+      const btn = document.getElementById('btn-girar');
+      if (!canvas || !btn) return;
+
+      btn.disabled = true;
+      const vueltas = 10 + Math.floor(Math.random() * 5);
+      const gradosExtra = Math.floor(Math.random() * 360);
+      const totalDeg = vueltas * 360 + gradosExtra;
+      canvas.style.transform = `rotate(${totalDeg}deg)`;
+
+      setTimeout(() => {
+        estaGirando = false;
+        btn.disabled = false;
+
+        const realDeg = (totalDeg % 360);
+        const index = Math.floor(((360 - realDeg + 270) % 360) / 90) % 4;
+
+        const premio = (db.premios && db.premios[index]) ? db.premios[index] : defaultDB.premios[index];
+        const tipo = (db.tipos && db.tipos[index]) ? db.tipos[index] : defaultDB.tipos[index];
+
+        alert(tipo === "win" ? "🔥 ¡GANASTE!: " + premio : "❌ Resultado: " + premio);
+      }, 4100);
+    }
+
+    /********************
+     * RENDER
+     ********************/
+    function render() {
+      const query = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
+      const tabla = document.getElementById('tabla-body');
+      const catalogo = document.getElementById('catalogo-container');
+
+      if (tabla) tabla.innerHTML = "";
+      if (catalogo) catalogo.innerHTML = "";
+
+      const boxRuleta = document.getElementById('box-ruleta-cliente');
+      if (boxRuleta) boxRuleta.classList.toggle('hidden', !db.ruletaVisible);
+
+      const productos = Array.isArray(db.productos) ? db.productos : [];
+
+      productos.forEach(p => {
+        const ganancia = (p.venta || 0) - (p.costo || 0);
+        const badgeStockTable = p.dispo === 'inmediata'
+          ? '<span class="badge-dispo bg-inmediata">Inmediata</span>'
+          : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
+
+        if (tabla) {
+          tabla.innerHTML += `<tr>
+            <td>${safeText(p.ref)}</td>
+            <td>${safeText(p.nombre)}</td>
+            <td>${safeText(p.onzas)}</td>
+            <td>${badgeStockTable}</td>
+            <td><b>${p.stock || 0}</b></td>
+            <td>$${p.costo || 0}</td>
+            <td>$${p.venta || 0}</td>
+            <td style="color:green">$${ganancia}</td>
+            <td>
+              ${esAdmin ? `<button onclick="editar(${p.id})">✏️</button> <button onclick="borrar(${p.id})">🗑️</button>` : `<span style="opacity:.5">—</span>`}
+            </td>
+          </tr>`;
+        }
+
+        // catálogo cliente (buscador)
+        const ref = safeText(p.ref).toLowerCase();
+        const nom = safeText(p.nombre).toLowerCase();
+        if (!catalogo) return;
+        if (nom.includes(query) || ref.includes(query)) {
+          const badgeStockCard = p.dispo === 'inmediata'
+            ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
+            : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
+
+          const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
+          const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
+
+          catalogo.innerHTML += `
+            <div class="card">
+              ${badgeStockCard}
+              <span class="badge-size">${safeText(p.onzas)}</span>
+              <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
+              <h3>${safeText(p.nombre)}</h3>
+              <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
+              <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank"
+                style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">
+                WhatsApp
+              </a>
+            </div>`;
+        }
+      });
+    }
+
+    /********************
+     * DRAG & DROP
+     ********************/
+    function activarDragDrop() {
+      const dropZone = document.getElementById('drop-zone');
+      if (!dropZone) return;
+
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+      });
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+      });
+
+      dropZone.addEventListener('drop', e => {
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) handleFile(files[0]);
+      }, false);
+    }
+
+    /********************
+     * FIREBASE RTDB
+     ********************/
+    firebase.initializeApp(firebaseConfig);
+    const rdb = firebase.database();
+
+    function escucharNube() {
+      rdb.ref(PATH_DB).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && typeof data === 'object') {
+          db = { ...structuredClone(defaultDB), ...data };
+          saveLocal();
+          // refrescar UI
+          cargarInputsAdmin();
+          actualizarUIHeader();
+          dibujarRuleta();
+          render();
+        }
+      });
+    }
+
+    async function guardarNube() {
+      if (!esAdmin) return;
+      if (guardando) return;
+      guardando = true;
+      try {
+        await rdb.ref(PATH_DB).set(db);
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ No se pudo guardar en la nube (permiso)", "error");
+      } finally {
+        guardando = false;
+      }
+    }
+
+    /********************
+     * CARGA INPUTS ADMIN DESDE DB
+     ********************/
+    function cargarInputsAdmin() {
+      // solo si existe panel
+      const shopNameEl = document.getElementById('input-shop-name');
+      if(shopNameEl) shopNameEl.value = db.nombreTienda || "H-ESSENCE";
+      const sloganEl = document.getElementById('input-shop-slogan');
+      if(sloganEl) sloganEl.value = db.slogan || "Luxury Perfumery RD";
+      const checkRuleta = document.getElementById('ruleta-visible-check');
+      if(checkRuleta) checkRuleta.checked = !!db.ruletaVisible;
+
+      const wheelTextEl = document.getElementById('wheel-text-color');
+      if(wheelTextEl) wheelTextEl.value = db.colorTextoRuleta || "#FFFFFF";
+      const wheelArrowEl = document.getElementById('wheel-arrow-color');
+      if(wheelArrowEl) wheelArrowEl.value = db.colorFlecha || "#1A1A1A";
+
+      for(let i=0; i<4; i++) {
+        const pInput = document.getElementById('p'+(i+1));
+        const tInput = document.getElementById('t'+(i+1));
+        if(pInput) pInput.value = (db.premios && db.premios[i]) ? db.premios[i] : defaultDB.premios[i];
+        if(tInput) tInput.value = (db.tipos && db.tipos[i]) ? db.tipos[i] : defaultDB.tipos[i];
+      }
+    }
+
+    /********************
+     * INICIO
+     ********************/
+    window.addEventListener('load', async () => {
+      try {
+        // iniciar en modo cliente SIEMPRE
+        setModoAdmin(false);
+
+        // cargar header con lo local mientras llega nube
+        actualizarUIHeader();
+        dibujarRuleta();
+        render();
+        updateLivePreview();
+        activarDragDrop();
+
+        // escuchar nube (clientes se actualizan solos)
+        escucharNube();
+
+        // si entras con #admin, pide login y muestra panel
+        await intentarLoginAdminSiAplica();
+        if (esAdmin) cargarInputsAdmin();
+
+      } catch (e) {
+        fatal(e);
+      }
+    });
+
+    /********************
+     * EXPONER FUNCIONES
+     ********************/
+    window.cambiarVista = cambiarVista;
+    window.guardarTodo = guardarTodo;
+    window.procesarProducto = procesarProducto;
+    window.editar = editar;
+    window.borrar = borrar;
+    window.exportarAExcel = exportarAExcel;
+    window.subirLogo = subirLogo;
+    window.handleFile = handleFile;
+    window.quitarFoto = quitarFoto;
+    window.updateLivePreview = updateLivePreview;
+    window.actualizarUIHeader = actualizarUIHeader;
+    window.actualizarColorFlecha = actualizarColorFlecha;
+    window.dibujarRuleta = dibujarRuleta;
+    window.girarRuleta = girarRuleta;
+    window.render = render;
+  </script>
 </body>
 </html>
