@@ -1,1257 +1,226 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H-Essence | Gestión VIP RD</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        :root {
-            --dorado: #D4AF37; --negro: #1A1A1A; --crema: #F9F7F2;
-            --blanco: #FFFFFF; --whatsapp: #25D366; --ganancia: #2e7d32; 
-            --azul-edit: #1976D2; --error: #c62828; --rojo-lose: #e63946;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-        body { background-color: var(--crema); color: var(--negro); padding-bottom: 50px; min-height: 100vh; }
-
-        #bg-logo {
-            position: fixed; top: 55%; left: 50%; transform: translate(-50%, -50%);
-            width: 90vw; max-width: 800px; opacity: 0.08; z-index: -1; pointer-events: none; object-fit: contain;
-        }
-
-        header {
-            background-color: var(--negro); color: var(--dorado);
-            padding: 2rem 1rem; text-align: center; border-bottom: 5px solid var(--dorado);
-            display: flex; flex-direction: column; align-items: center; position: relative; z-index: 10;
-        }
-        #shop-logo-header { max-height: 120px; width: auto; max-width: 90%; object-fit: contain; margin-bottom: 15px; display: none; }
-        header h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: 4px; text-transform: uppercase; }
-
-        .admin-section {
-            max-width: 1200px; margin: 20px auto; background: rgba(255, 255, 255, 0.95);
-            padding: 20px; border-radius: 15px; border: 2px dashed var(--dorado);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1); position: relative; z-index: 20;
-        }
-
-        #drop-zone {
-            border: 2px dashed var(--dorado); padding: 40px; text-align: center;
-            border-radius: 10px; background: #fffcf5; cursor: pointer; transition: 0.3s;
-            margin-bottom: 10px; font-weight: bold; position: relative;
-        }
-        #drop-zone.dragover { background: #f0e6cc; border-style: solid; transform: scale(1.02); }
-
-        .btn-remove-img {
-            position: absolute; top: 5px; right: 5px; background: var(--rojo-lose);
-            color: white; border: none; border-radius: 50%; width: 25px; height: 25px;
-            cursor: pointer; font-weight: bold; display: none; z-index: 5;
-        }
-
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-top: 15px; }
-        input, select { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 100%; font-size: 14px; outline: none; }
-        input:focus, select:focus { border-color: var(--dorado); box-shadow: 0 0 5px rgba(212, 175, 55, 0.3); }
-        
-        .btn-add { background: var(--ganancia); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
-        .btn-update { background: var(--azul-edit); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 8px; font-weight: bold; grid-column: 1 / -1; }
-        
-        .btn-save-all { 
-            background: var(--dorado); color: var(--negro); border: none; padding: 15px; 
-            cursor: pointer; border-radius: 8px; font-weight: 800; grid-column: 1 / -1; 
-            margin-top: 10px; border: 2px solid var(--negro); text-transform: uppercase;
-        }
-        .btn-export-excel {
-            background: #1D6F42; color: white; border: none; padding: 15px;
-            cursor: pointer; border-radius: 8px; font-weight: 800; grid-column: 1 / -1;
-            margin-top: 5px; text-transform: uppercase;
-        }
-
-        .ruleta-config {
-            background: #fdfaf0; border: 1px solid var(--dorado); border-radius: 10px;
-            padding: 15px; margin-top: 20px; grid-column: 1 / -1;
-        }
-        .casilla-config { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 8px; }
-
-        .preview-container {
-            grid-column: 1 / -1; margin-top: 20px; padding: 15px;
-            background: #f0f0f0; border-radius: 10px; text-align: center;
-            border: 1px solid #ccc;
-        }
-        .preview-box { max-width: 300px; margin: 10px auto; }
-
-        .ruleta-box { text-align: center; margin: 40px auto; max-width: 400px; position: relative; padding: 20px; }
-        .canvas-container { position: relative; display: inline-block; }
-        
-        .ruleta-flecha {
-            position: absolute; top: -20px; left: 50%; transform: translateX(-50%);
-            width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent;
-            border-top: 40px solid var(--negro); z-index: 9000; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-            pointer-events: none;
-        }
-
-        #canvas-ruleta { border-radius: 50%; border: 8px solid var(--negro); transition: transform 4s cubic-bezier(0.1, 0, 0, 1); }
-
-        .table-container { overflow-x: auto; margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
-        th { background: var(--negro); color: var(--dorado); padding: 12px; }
-        td { padding: 10px; border: 1px solid #eee; text-align: center; }
-
-        .badge-dispo { padding: 4px 8px; border-radius: 5px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; display: inline-block; }
-        .bg-inmediata { background: var(--ganancia); color: white; }
-        .bg-pedido { background: var(--azul-edit); color: white; }
-
-        .grid-cliente { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px; }
-        .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; position: relative; }
-        .card img { width: 100%; height: 250px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
-        
-        .badge-size { background: var(--negro); color: var(--dorado); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; position: absolute; top: 15px; right: 15px; z-index: 10; }
-        .badge-card-dispo { position: absolute; top: 15px; left: 15px; z-index: 10; }
-
-        .hidden { display: none !important; }
-        #toggle-view { position: fixed; bottom: 20px; right: 20px; background: var(--negro); color: var(--dorado); padding: 12px 20px; border-radius: 50px; cursor: pointer; z-index: 1000; border: 2px solid var(--dorado); font-weight: bold; }
-
-        #toast-alert {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--negro); color: var(--dorado); padding: 15px 40px;
-            border-radius: 50px; border: 2px solid var(--dorado); z-index: 9999;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-weight: 800;
-            display: none; animation: slideIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-            text-align: center; white-space: nowrap;
-        }
-
-        @keyframes slideIn { from { top: -100px; opacity: 0; } to { top: 20px; opacity: 1; } }
-
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: var(--dorado); }
-    </style>
-</head>
-<body>
-
-<div id="toast-alert">✅ Configuración actualizada</div>
-<img id="bg-logo" src="" alt="">
-<button id="toggle-view" onclick="cambiarVista()">👁️ Vista: Administrador</button>
-
-<header>
-    <img id="shop-logo-header" src="" alt="Logo">
-    <h1 id="shop-name-display">H-ESSENCE</h1>
-    <p id="shop-slogan-display">Luxury Perfumery RD</p>
-</header>
-
-<div id="panel-admin" class="admin-section">
-    <h3>🛠️ PANEL DE ADMINISTRACIÓN</h3>
-    
-    <div class="form-grid">
-        <div style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #ddd;">
-            <div><label><small>Nombre Tienda:</small></label><input type="text" id="input-shop-name" oninput="actualizarUIHeader()"></div>
-            <div><label><small>Eslogan:</small></label><input type="text" id="input-shop-slogan" oninput="actualizarUIHeader()"></div>
-            <div><label><small>Logo:</small></label><input type="file" accept="image/*" onchange="subirLogo(this.files[0])"></div>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <label><small>Activar Ruleta:</small></label>
-                <label class="switch">
-                    <input type="checkbox" id="ruleta-visible-check">
-                    <span class="slider"></span>
-                </label>
-            </div>
-        </div>
-
-        <div class="ruleta-config">
-            <h4>🎡 Configuración de Ruleta</h4>
-            <div style="margin: 10px 0; display: flex; gap: 20px; align-items: center;">
-                <div>
-                    <label><small>Color de Texto:</small></label>
-                    <select id="wheel-text-color">
-                        <option value="#FFFFFF">Blanco</option>
-                        <option value="#000000">Negro</option>
-                    </select>
-                </div>
-                <div>
-                    <label><small>Color de Flecha:</small></label>
-                    <input type="color" id="wheel-arrow-color" value="#1A1A1A" onchange="actualizarColorFlecha(this.value)" style="padding:0; width:40px; height:40px; border:none;">
-                </div>
-            </div>
-            <div id="casillas-container">
-                <div class="casilla-config">
-                    <input type="text" id="p1" placeholder="Premio 1">
-                    <select id="t1"><option value="win">Ganadora</option><option value="lose">Perdedora</option></select>
-                </div>
-                <div class="casilla-config">
-                    <input type="text" id="p2" placeholder="Premio 2">
-                    <select id="t2"><option value="lose">Perdedora</option><option value="win">Ganadora</option></select>
-                </div>
-                <div class="casilla-config">
-                    <input type="text" id="p3" placeholder="Premio 3">
-                    <select id="t3"><option value="win">Ganadora</option><option value="lose">Perdedora</option></select>
-                </div>
-                <div class="casilla-config">
-                    <input type="text" id="p4" placeholder="Premio 4">
-                    <select id="t4"><option value="lose">Perdedora</option><option value="win">Ganadora</option></select>
-                </div>
-            </div>
-        </div>
-
-        <div id="drop-zone" style="grid-column: 1 / -1;" onclick="document.getElementById('foto-input').click()">
-            <button class="btn-remove-img" id="btn-del-img" onclick="quitarFoto(event)">X</button>
-            <span id="drop-text">📸 Arrastra o selecciona foto aquí</span>
-            <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
-        </div>
-
-        <input type="text" id="referencia" placeholder="Ref/SKU" oninput="updateLivePreview()">
-        <input type="text" id="nombre" placeholder="Nombre Perfume" oninput="updateLivePreview()">
-        <input type="text" id="onzas" placeholder="Tamaño (Ej: 100)" oninput="updateLivePreview()">
-        <select id="disponibilidad" onchange="updateLivePreview()">
-            <option value="inmediata">Entrega Inmediata</option>
-            <option value="pedido">Por Pedido</option>
-        </select>
-        <input type="number" id="venta" placeholder="Precio Venta RD$" oninput="updateLivePreview()">
-        <input type="number" id="costo" placeholder="Costo Compra RD$">
-        <input type="number" id="stock-cantidad" placeholder="Cantidad en Stock" value="1">
-        
-        <input type="hidden" id="edit-id">
-        <button id="btn-add" class="btn-add" onclick="procesarProducto()">✅ AGREGAR A LA LISTA</button>
-        <button id="btn-update" class="btn-update hidden" onclick="procesarProducto()">💾 ACTUALIZAR ARTÍCULO</button>
-        
-        <button class="btn-save-all" onclick="guardarTodo()">📌 Guardar Cambios del Sistema</button>
-        <button class="btn-export-excel" onclick="exportarAExcel()">📊 Exportar Inventario a Excel</button>
-
-        <div class="preview-container">
-            <small>VISTA PREVIA</small>
-            <div id="live-preview" class="preview-box"></div>
-        </div>
-    </div>
-
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Ref</th><th>Producto</th><th>Tam.</th><th>Estado</th><th>Stock</th><th>Costo</th><th>Venta</th><th>Ganancia $</th><th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-body"></tbody>
-        </table>
-    </div>
-</div>
-
-<div id="seccion-cliente" class="hidden">
-    <div id="box-ruleta-cliente" class="ruleta-box">
-        <div class="canvas-container">
-            <div class="ruleta-flecha" id="flecha-cliente"></div>
-            <canvas id="canvas-ruleta" width="300" height="300"></canvas>
-        </div>
-        <br>
-        <button id="btn-girar" onclick="girarRuleta()" style="background:var(--dorado); padding:15px 30px; border-radius:30px; border:2px solid var(--negro); cursor:pointer; font-weight:bold; margin-top:10px;">🎰 GIRAR RULETA</button>
-    </div>
-
-    <div style="text-align:center; padding:20px;">
-        <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="render()" style="max-width:400px; border:2px solid var(--dorado); border-radius: 20px;">
-    </div>
-    <div id="catalogo-container" class="grid-cliente"></div>
-</div>
-
-<script>
-    const TEL_WHATSAPP = "18097530456";
-    let estaGirando = false;
-    let currentImg = "";
-    let esAdmin = true;
-
-    let db = JSON.parse(localStorage.getItem('h_essence_final_db')) || {
-        productos: [],
-        nombreTienda: "H-ESSENCE",
-        slogan: "Luxury Perfumery RD",
-        logo: "",
-        ruletaVisible: false,
-        premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI!"],
-        tipos: ["win", "lose", "win", "lose"],
-        colorTextoRuleta: "#FFFFFF",
-        colorFlecha: "#1A1A1A"
-    };
-
-    function mostrarAlerta(msg, tipo = "exito") {
-        const toast = document.getElementById('toast-alert');
-        if(!toast) return;
-        toast.innerText = msg;
-        toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
-        toast.style.color = 'white';
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 3000);
-    }
-
-    function actualizarUIHeader() {
-        const nameInput = document.getElementById('input-shop-name');
-        const sloganInput = document.getElementById('input-shop-slogan');
-        document.getElementById('shop-name-display').innerText = (nameInput && nameInput.value) ? nameInput.value : "H-ESSENCE";
-        document.getElementById('shop-slogan-display').innerText = (sloganInput && sloganInput.value) ? sloganInput.value : "Luxury Perfumery RD";
-    }
-
-    function actualizarColorFlecha(color) {
-        db.colorFlecha = color;
-        const flecha = document.getElementById('flecha-cliente');
-        if(flecha) flecha.style.borderTopColor = color;
-    }
-
-    function guardarTodo() {
-        const nameVal = document.getElementById('input-shop-name').value;
-        if(!nameVal) {
-            mostrarAlerta("❌ El nombre de la tienda es obligatorio", "error");
-            return;
-        }
-
-        db.nombreTienda = nameVal;
-        db.slogan = document.getElementById('input-shop-slogan').value;
-        db.ruletaVisible = document.getElementById('ruleta-visible-check').checked;
-        db.colorTextoRuleta = document.getElementById('wheel-text-color').value;
-        db.colorFlecha = document.getElementById('wheel-arrow-color').value;
-        
-        db.premios = [
-            document.getElementById('p1').value || "P1",
-            document.getElementById('p2').value || "P2",
-            document.getElementById('p3').value || "P3",
-            document.getElementById('p4').value || "P4"
-        ];
-        db.tipos = [
-            document.getElementById('t1').value,
-            document.getElementById('t2').value,
-            document.getElementById('t3').value,
-            document.getElementById('t4').value
-        ];
-
-        localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-        actualizarUIHeader();
-        actualizarColorFlecha(db.colorFlecha);
-        dibujarRuleta();
-        mostrarAlerta("✅ Configuración del sistema actualizada");
-    }
-
-    function handleFile(file) {
-        if (!file || !file.type.startsWith('image/')) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            currentImg = e.target.result; 
-            document.getElementById('drop-text').innerText = "✅ Imagen Lista"; 
-            document.getElementById('btn-del-img').style.display = "block";
-            updateLivePreview();
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function quitarFoto(e) {
-        if(e) e.stopPropagation();
-        currentImg = "";
-        document.getElementById('drop-text').innerText = "📸 Arrastra o selecciona foto aquí";
-        document.getElementById('btn-del-img').style.display = "none";
-        document.getElementById('foto-input').value = "";
-        updateLivePreview();
-    }
-
-    function subirLogo(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { 
-            db.logo = e.target.result; 
-            if(db.logo) {
-                document.getElementById('shop-logo-header').src = db.logo;
-                document.getElementById('shop-logo-header').style.display = "inline-block";
-                document.getElementById('bg-logo').src = db.logo;
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function updateLivePreview() {
-        const preview = document.getElementById('live-preview');
-        if(!preview) return;
-        const n = document.getElementById('nombre').value || "Nombre";
-        const v = document.getElementById('venta').value || "0";
-        let o = document.getElementById('onzas').value;
-        const disp = document.getElementById('disponibilidad').value;
-        
-        if(o && !o.toLowerCase().includes('oz') && !o.toLowerCase().includes('ml')) {
-            o += " oz";
-        }
-
-        const badgeStock = disp === 'inmediata' ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>' : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
-        const img = currentImg || "https://via.placeholder.com/300";
-        
-        preview.innerHTML = `
-            <div class="card">
-                ${badgeStock}
-                ${o ? `<span class="badge-size">${o}</span>` : ''}
-                <img src="${img}">
-                <h3>${n}</h3>
-                <p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p>
-            </div>`;
-    }
-
-    function procesarProducto() {
-        const id = document.getElementById('edit-id').value;
-        let ozValue = document.getElementById('onzas').value;
-        if(ozValue && !ozValue.toLowerCase().includes('oz') && !ozValue.toLowerCase().includes('ml')) ozValue += " oz";
-
-        const p = {
-            id: id ? parseInt(id) : Date.now(),
-            ref: document.getElementById('referencia').value || "S/R",
-            nombre: document.getElementById('nombre').value,
-            onzas: ozValue || "N/A",
-            dispo: document.getElementById('disponibilidad').value,
-            venta: parseFloat(document.getElementById('venta').value) || 0,
-            costo: parseFloat(document.getElementById('costo').value) || 0,
-            stock: parseInt(document.getElementById('stock-cantidad').value) || 0,
-            img: currentImg || "https://via.placeholder.com/300"
-        };
-
-        if(!p.nombre) {
-            mostrarAlerta("❌ Nombre de perfume requerido", "error");
-            return;
-        }
-
-        if(id) {
-            const i = db.productos.findIndex(x => x.id === p.id);
-            db.productos[i] = p;
-        } else {
-            db.productos.push(p);
-        }
-
-        localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-        mostrarAlerta(id ? "✏️ Cambios en el producto guardados" : "📦 Producto añadido al catálogo");
-        resetForm();
-        render();
-    }
-
-    function resetForm() {
-        document.getElementById('edit-id').value = "";
-        ['referencia','nombre','onzas','venta','costo','stock-cantidad'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.value = id === 'stock-cantidad' ? "1" : "";
-        });
-        document.getElementById('disponibilidad').value = "inmediata";
-        quitarFoto();
-        document.getElementById('btn-add').classList.remove('hidden');
-        document.getElementById('btn-update').classList.add('hidden');
-        updateLivePreview();
-    }
-
-    function dibujarRuleta(premiosCustom) {
-        const canvas = document.getElementById('canvas-ruleta');
-        if(!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const listado = premiosCustom || db.premios;
-        const colores = ["#D4AF37", "#1A1A1A", "#D4AF37", "#1A1A1A"];
-        ctx.clearRect(0,0,300,300);
-        for(let i=0; i<4; i++){
-            ctx.beginPath(); ctx.fillStyle = colores[i]; ctx.moveTo(150,150);
-            ctx.arc(150,150,140, i * Math.PI/2, (i+1) * Math.PI/2); ctx.fill();
-            ctx.save(); ctx.translate(150,150); ctx.rotate(i * Math.PI/2 + Math.PI/4);
-            ctx.fillStyle = db.colorTextoRuleta; ctx.textAlign = "center"; ctx.font = "bold 13px Poppins";
-            ctx.fillText(listado[i], 75, 5); ctx.restore();
-        }
-    }
-
-    function girarRuleta() {
-        if(estaGirando) return;
-        estaGirando = true;
-        const canvas = document.getElementById('canvas-ruleta');
-        const btn = document.getElementById('btn-girar');
-        btn.disabled = true;
-
-        const vueltas = 10 + Math.floor(Math.random() * 5);
-        const gradosExtra = Math.floor(Math.random() * 360);
-        const totalDeg = vueltas * 360 + gradosExtra;
-        canvas.style.transform = `rotate(${totalDeg}deg)`;
-
-        setTimeout(() => {
-            estaGirando = false;
-            btn.disabled = false;
-            canvas.style.transition = 'none';
-            const finalDeg = totalDeg % 360;
-            canvas.style.transform = `rotate(${finalDeg}deg)`;
-            setTimeout(() => { canvas.style.transition = 'transform 4s cubic-bezier(0.1, 0, 0, 1)'; }, 50);
-
-            const realDeg = (totalDeg % 360);
-            const index = Math.floor(((360 - realDeg + 270) % 360) / 90);
-            const premio = db.premios[index];
-            alert(db.tipos[index] === "win" ? "🔥 ¡GANASTE!: " + premio : "❌ Resultado: " + premio);
-        }, 4000);
-    }
-
-    function render() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const tabla = document.getElementById('tabla-body');
-        const catalogo = document.getElementById('catalogo-container');
-        if(!tabla || !catalogo) return;
-        tabla.innerHTML = ""; catalogo.innerHTML = "";
-        
-        document.getElementById('box-ruleta-cliente').classList.toggle('hidden', !db.ruletaVisible);
-
-        db.productos.forEach(p => {
-            const ganancia = p.venta - p.costo;
-            const badgeStockTable = p.dispo === 'inmediata' ? '<span class="badge-dispo bg-inmediata">Inmediata</span>' : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
-            const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
-            
-            tabla.innerHTML += `<tr>
-                <td>${p.ref}</td>
-                <td>${p.nombre}</td>
-                <td>${p.onzas}</td>
-                <td>${badgeStockTable}</td>
-                <td><b>${p.stock || 0}</b></td>
-                <td>$${p.costo}</td>
-                <td>$${p.venta}</td>
-                <td style="color:green">$${ganancia}</td>
-                <td><button onclick="editar(${p.id})">✏️</button> <button onclick="borrar(${p.id})">🗑️</button></td>
-            </tr>`;
-            
-            if(p.nombre.toLowerCase().includes(query) || p.ref.toLowerCase().includes(query)) {
-                const badgeStockCard = p.dispo === 'inmediata' ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>' : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
-                
-                // Link de WhatsApp personalizado con disponibilidad
-                const wsMsg = `Hola, me interesa este perfume:%0A- *${p.nombre}* (${p.onzas})%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta}`;
-                
-                catalogo.innerHTML += `
-                <div class="card">
-                    ${badgeStockCard}
-                    <span class="badge-size">${p.onzas}</span>
-                    <img src="${p.img}">
-                    <h3>${p.nombre}</h3>
-                    <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta}</p>
-                    <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold;">WhatsApp</a>
-                </div>`;
-            }
-        });
-    }
-
-    function editar(id) {
-        const p = db.productos.find(x => x.id === id);
-        if(!p) return;
-        document.getElementById('edit-id').value = p.id;
-        document.getElementById('referencia').value = p.ref;
-        document.getElementById('nombre').value = p.nombre;
-        document.getElementById('onzas').value = p.onzas;
-        document.getElementById('disponibilidad').value = p.dispo || "inmediata";
-        document.getElementById('venta').value = p.venta;
-        document.getElementById('costo').value = p.costo;
-        document.getElementById('stock-cantidad').value = p.stock || 0;
-        currentImg = p.img;
-        document.getElementById('btn-add').classList.add('hidden');
-        document.getElementById('btn-update').classList.remove('hidden');
-        if(currentImg) document.getElementById('btn-del-img').style.display = "block";
-        updateLivePreview();
-        window.scrollTo({top: 0, behavior: 'smooth'});
-    }
-
-    function borrar(id) { if(confirm("¿Eliminar este producto?")) { db.productos = db.productos.filter(x => x.id !== id); localStorage.setItem('h_essence_final_db', JSON.stringify(db)); render(); mostrarAlerta("🗑️ Producto eliminado", "error"); } }
-
-    function exportarAExcel() {
-        if(!db.productos.length) return alert("No hay productos");
-        const cleanData = db.productos.map(p => ({
-            Referencia: p.ref,
-            Nombre: p.nombre,
-            Tamaño: p.onzas,
-            Estado: p.dispo === 'inmediata' ? 'En Stock' : 'Por Pedido',
-            Stock: p.stock || 0,
-            Costo: p.costo,
-            Venta: p.venta,
-            Ganancia: p.venta - p.costo
-        }));
-        const ws = XLSX.utils.json_to_sheet(cleanData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Inventario");
-        XLSX.writeFile(wb, "H-Essence_Inventario.xlsx");
-    }
-
-    function cambiarVista() { 
-        esAdmin = !esAdmin; 
-        document.getElementById('panel-admin').classList.toggle('hidden', !esAdmin); 
-        document.getElementById('seccion-cliente').classList.toggle('hidden', esAdmin); 
-        document.getElementById('toggle-view').innerText = esAdmin ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
-        if(!esAdmin) {
-            render();
-            dibujarRuleta();
-        }
-    }
-
-    // CARGA INICIAL INTEGRADA
-    window.addEventListener('load', () => {
-        // Cargar inputs desde la DB
-        const shopNameEl = document.getElementById('input-shop-name');
-        if(shopNameEl) shopNameEl.value = db.nombreTienda;
-        
-        const sloganEl = document.getElementById('input-shop-slogan');
-        if(sloganEl) sloganEl.value = db.slogan;
-
-        const checkRuleta = document.getElementById('ruleta-visible-check');
-        if(checkRuleta) checkRuleta.checked = db.ruletaVisible;
-
-        const wheelTextEl = document.getElementById('wheel-text-color');
-        if(wheelTextEl) wheelTextEl.value = db.colorTextoRuleta;
-
-        const wheelArrowEl = document.getElementById('wheel-arrow-color');
-        if(wheelArrowEl) wheelArrowEl.value = db.colorFlecha || "#1A1A1A";
-        
-        for(let i=0; i<4; i++) {
-            const pInput = document.getElementById('p'+(i+1));
-            const tInput = document.getElementById('t'+(i+1));
-            if(pInput) pInput.value = db.premios[i];
-            if(tInput) tInput.value = db.tipos[i];
-        }
-        
-        if(db.logo) {
-            const logoHeader = document.getElementById('shop-logo-header');
-            const logoBg = document.getElementById('bg-logo');
-            if(logoHeader) {
-                logoHeader.src = db.logo;
-                logoHeader.style.display = "inline-block";
-            }
-            if(logoBg) logoBg.src = db.logo;
-        }
-
-        actualizarUIHeader();
-        actualizarColorFlecha(db.colorFlecha);
-        dibujarRuleta(); 
-        render(); 
-        updateLivePreview();
-    });
-</script>
-</body><script>
-(function() {
-    // 1. Optimizar almacenamiento del logo (Reducción de peso)
-    const originalSubirLogo = window.subirLogo;
-    window.subirLogo = function(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400; // Reducimos el logo a un tamaño web óptimo
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Guardamos el logo optimizado para que no bloquee el sistema
-                db.logo = canvas.toDataURL('image/webp', 0.7); 
-                
-                const logoHeader = document.getElementById('shop-logo-header');
-                const logoBg = document.getElementById('bg-logo');
-                if(logoHeader) {
-                    logoHeader.src = db.logo;
-                    logoHeader.style.display = "inline-block";
-                }
-                if(logoBg) logoBg.src = db.logo;
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    };
-
-    // 2. Reparación del botón "Guardar Cambios del Sistema"
-    // Forzamos el guardado incluso si hay errores de cuota de disco
-    const btnGuardarSistema = document.querySelector('.btn-save-all');
-    if (btnGuardarSistema) {
-        btnGuardarSistema.addEventListener('click', function() {
-            try {
-                // Intentamos guardar la configuración sin los productos para asegurar espacio
-                localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-            } catch (e) {
-                console.error("Error de espacio en disco. El logo es muy pesado.");
-                // Si falla por espacio, intentamos guardar sin el logo para no perder los textos
-                const backupLogo = db.logo;
-                db.logo = "";
-                localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-                db.logo = backupLogo;
-                alert("⚠️ Se guardaron los textos, pero el logo es demasiado pesado para el navegador.");
-            }
-        });
-    }
-})();
-</script>
-<script>
-(function() {
-    // 1. REACTIVACIÓN DE ARRASTRAR FOTOS (DRAG & DROP)
-    const dropZone = document.getElementById('drop-zone');
-    if (dropZone) {
-        // Evitar que el navegador abra la imagen al soltarla
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, e => {
-                e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-
-        // Efecto visual al pasar la foto por encima
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
-        });
-
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
-        });
-
-        // Capturar el archivo cuando se suelta
-        dropZone.addEventListener('drop', e => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            if (files.length > 0 && typeof window.handleFile === 'function') {
-                window.handleFile(files[0]);
-            }
-        }, false);
-    }
-
-    // 2. OPTIMIZACIÓN DE LOGO (Previene bloqueos del sistema por peso de imagen)
-    const baseSubirLogo = window.subirLogo;
-    window.subirLogo = function(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 400; // Tamaño óptimo para no saturar memoria
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
-                canvas.height = img.height * scaleSize;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                
-                // Convertimos a WebP (pesa 80% menos que un PNG común)
-                db.logo = canvas.toDataURL('image/webp', 0.7); 
-                
-                const logoHeader = document.getElementById('shop-logo-header');
-                const logoBg = document.getElementById('bg-logo');
-                if(logoHeader) {
-                    logoHeader.src = db.logo;
-                    logoHeader.style.display = "inline-block";
-                }
-                if(logoBg) logoBg.src = db.logo;
-                console.log("Logo optimizado y cargado.");
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    };
-
-    // 3. REFUERZO DE GUARDADO (Asegura persistencia de disponibilidad y otros datos)
-    const originalGuardarTodo = window.guardarTodo;
-    window.guardarTodo = function() {
-        try {
-            // Ejecutamos la lógica original
-            if (typeof originalGuardarTodo === 'function') originalGuardarTodo();
-            
-            // Verificación extra de persistencia
-            localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-        } catch (e) {
-            alert("⚠️ El logo es demasiado grande para la memoria del navegador. Intenta con uno más ligero.");
-            console.error("Error de cuota de almacenamiento:", e);
-        }
-    };
-})();
-</script>
-<script>
-(function() {
-    // 1. PANEL DE CONTROL (Se mantiene el original, eliminadas casillas 5 y 6)
-    const contenedorCasillas = document.getElementById('casillas-container');
-
-    // 2. ESTILOS DE TAMAÑO Y EFECTOS MEJORADOS
-    const estilos = document.createElement('style');
-    estilos.innerHTML = `
-        .ruleta-box { max-width: 550px !important; margin: 40px auto !important; position: relative; } 
-        #canvas-ruleta { width: 480px !important; height: 480px !important; border-width: 12px !important; }
-        .ruleta-flecha { border-top-width: 50px !important; border-left-width: 25px !important; border-right-width: 25px !important; top: -30px !important; z-index: 1000; }
-        #logo-estatico-ruleta {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 90px; height: 90px; border-radius: 50%; background-color: white;
-            border: 4px solid #D4AF37; z-index: 500; background-size: cover; background-position: center;
-            box-shadow: 0 0 20px rgba(0,0,0,0.4); pointer-events: none;
-        }
-        .vfx-item { 
-            position: fixed; z-index: 999999 !important; 
-            pointer-events: none; animation: vfx-fall 3s linear forwards;
-            text-shadow: 0 0 10px rgba(255,215,0,0.7);
-        }
-        @keyframes vfx-fall { 
-            0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; } 
-            100% { transform: translateY(110vh) rotate(360deg) scale(0.5); opacity: 0; } 
-        }
-    `;
-    document.head.appendChild(estilos);
-
-    // 3. LOGO ESTÁTICO
-    const contenedorRuleta = document.querySelector('.canvas-container');
-    if (contenedorRuleta && !document.getElementById('logo-estatico-ruleta')) {
-        const logoDiv = document.createElement('div');
-        logoDiv.id = 'logo-estatico-ruleta';
-        contenedorRuleta.appendChild(logoDiv);
-    }
-
-    // 4. DIBUJO DE 4 SECTORES (Ajustado de 6 a 4)
-    window.dibujarRuleta = function() {
-        const canvas = document.getElementById('canvas-ruleta');
-        if(!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const numSectores = 4; 
-        const angulo = (Math.PI * 2) / numSectores;
-
-        ctx.clearRect(0, 0, 300, 300);
-        for(let i=0; i<numSectores; i++){
-            ctx.beginPath();
-            const grad = ctx.createRadialGradient(150, 150, 0, 150, 150, 150);
-            if (i % 2 === 0) { grad.addColorStop(0, "#f3e5ab"); grad.addColorStop(1, "#D4AF37"); }
-            else { grad.addColorStop(0, "#444444"); grad.addColorStop(1, "#1A1A1A"); }
-            
-            ctx.fillStyle = grad;
-            ctx.moveTo(150, 150);
-            ctx.arc(150, 150, 145, i * angulo, (i+1) * angulo);
-            ctx.fill();
-            
-            ctx.save();
-            ctx.translate(150, 150);
-            ctx.rotate(i * angulo + angulo/2);
-            ctx.fillStyle = db.colorTextoRuleta;
-            ctx.textAlign = "right";
-            ctx.font = "bold 11px Poppins";
-            if(db.premios[i]) {
-                ctx.fillText(db.premios[i].toUpperCase(), 135, 5);
-            }
-            ctx.restore();
-        }
-
-        const logoDiv = document.getElementById('logo-estatico-ruleta');
-        if (logoDiv && db.logo) {
-            logoDiv.style.backgroundImage = `url(${db.logo})`;
-            logoDiv.style.display = 'block';
-        }
-    };
-
-    // 5. LLUVIA DE ESTRELLITAS Y FUEGUITOS
-    function lanzarCelebracion() {
-        const icons = ["⭐", "🔥", "✨", "🌟", "🔥", "💫"];
-        for(let i=0; i<100; i++) {
-            setTimeout(() => {
-                const d = document.createElement('div');
-                d.className = 'vfx-item';
-                d.innerText = icons[Math.floor(Math.random()*icons.length)];
-                const size = icons[i % icons.length].includes("🔥") ? 40 : (Math.random() * 20 + 20);
-                d.style.fontSize = size + "px";
-                d.style.left = Math.random()*100 + "vw";
-                d.style.top = "-60px";
-                d.style.animationDuration = (Math.random()*1.5 + 1.5) + "s";
-                if (!icons[i % icons.length].includes("🔥")) {
-                    d.style.filter = "drop-shadow(0 0 5px white)";
-                }
-                document.body.appendChild(d);
-                setTimeout(() => d.remove(), 3000);
-            }, i * 35);
-        }
-    }
-
-    // 6. GIRO INFINITO (Ajustado para 4 sectores)
-    let rotacionActual = 0;
-    window.girarRuleta = function() {
-        if(estaGirando) return;
-        estaGirando = true;
-        const canvas = document.getElementById('canvas-ruleta');
-        const btn = document.getElementById('btn-girar');
-        btn.disabled = true;
-
-        const vueltasExtra = 3600; 
-        const gradosPremio = Math.floor(Math.random() * 360);
-        rotacionActual += vueltasExtra + gradosPremio;
-        
-        canvas.style.transition = 'transform 4s cubic-bezier(0.1, 0, 0, 1)';
-        canvas.style.transform = `rotate(${rotacionActual}deg)`;
-
-        setTimeout(() => {
-            estaGirando = false;
-            btn.disabled = false;
-            const realDeg = (rotacionActual % 360);
-            // Ajuste del índice para 4 sectores (360/4 = 90 grados por sector)
-            const index = Math.floor(((360 - realDeg + 270) % 360) / 90) % 4;
-            const premio = db.premios[index];
-
-            if(db.tipos[index] === "win") {
-                lanzarCelebracion();
-                alert("🔥 ¡ENHORABUENA H-ESSENCE!: " + premio);
-            } else {
-                alert("❌ Resultado: " + premio);
-            }
-        }, 4100);
-    };
-
-    // 7. SINCRONIZACIÓN DE GUARDADO (Ajustado a 4)
-    const originalGuardar = window.guardarTodo;
-    window.guardarTodo = function() {
-        db.premios = []; db.tipos = [];
-        for(let i=1; i<=4; i++) {
-            const inputP = document.getElementById('p'+i);
-            const inputT = document.getElementById('t'+i);
-            if(inputP) db.premios.push(inputP.value || "Premio "+i);
-            if(inputT) db.tipos.push(inputT.value);
-        }
-        if(typeof originalGuardar === 'function') originalGuardar();
-    };
-
-    window.addEventListener('load', () => {
-        dibujarRuleta();
-    });
-})();
-</script>
-<script>
-(function() {
-    // 1. ELIMINAR RESTRICCIONES DE ALTURA (EL CULPABLE DE LOS 125PX)
-    const inyectarEstiloGlobal = () => {
-        let styleFix = document.getElementById('fix-logo-constraints');
-        if (!styleFix) {
-            styleFix = document.createElement('style');
-            styleFix.id = 'fix-logo-constraints';
-            document.head.appendChild(styleFix);
-        }
-        // Forzamos a que el max-height sea infinito y el header se adapte
-        styleFix.innerHTML = `
-            #shop-logo-header { 
-                max-height: none !important; 
-                height: auto !important;
-                transition: width 0.2s ease-out;
-            }
-            header { 
-                height: auto !important; 
-                min-height: 150px; 
-                padding: 40px 10px !important; 
-            }
-        `;
-    };
-    inyectarEstiloGlobal();
-
-    // 2. CONTROL DE TAMAÑO EN EL PANEL
-    const contenedorConfig = document.getElementById('casillas-container');
-    if (contenedorConfig && !document.getElementById('logo-size-ctrl')) {
-        const divSize = document.createElement('div');
-        divSize.style = "margin:15px 0; padding:15px; background:#fff3cd; border-radius:10px; border:1px solid #ffeeba; box-shadow: 0 2px 5px rgba(0,0,0,0.05);";
-        divSize.innerHTML = `
-            <label style="display:block; font-size:12px; font-weight:800; margin-bottom:8px; color:#856404; text-transform:uppercase;">
-                📏 Ancho del Logo: <span id="val-size">250</span>px
-            </label>
-            <input type="range" id="logo-size-ctrl" min="50" max="1000" value="${db.logoSize || 250}" style="width:100%; accent-color:#D4AF37;">
-        `;
-        // Lo colocamos justo antes de la configuración de la ruleta
-        contenedorConfig.parentNode.insertBefore(divSize, contenedorConfig);
-
-        const aplicarTamano = (size) => {
-            document.getElementById('val-size').innerText = size;
-            const logo = document.getElementById('shop-logo-header');
-            if (logo) {
-                logo.style.setProperty('width', size + 'px', 'important');
-                logo.style.setProperty('max-width', '100%', 'important');
-            }
-            db.logoSize = size;
-        };
-
-        const slider = document.getElementById('logo-size-ctrl');
-        slider.oninput = (e) => aplicarTamano(e.target.value);
-        
-        // Aplicar el tamaño guardado al cargar
-        setTimeout(() => aplicarTamano(slider.value), 100);
-    }
-
-    // 3. INTEGRACIÓN CON EL BOTÓN DE GUARDADO EXISTENTE
-    const btnGuardar = document.querySelector('.btn-save-all');
-    if (btnGuardar) {
-        const originalClick = btnGuardar.onclick;
-        btnGuardar.onclick = function(e) {
-            const slider = document.getElementById('logo-size-ctrl');
-            if (slider) db.logoSize = slider.value;
-            
-            // Ejecutamos la lógica original de tu código
-            if (typeof originalClick === 'function') {
-                originalClick.apply(this, arguments);
-            } else {
-                guardarTodo(); // Fallback a la función global
-            }
-        };
-    }
-
-    // 4. CORRECCIÓN DE LA SUBIDA DE LOGO (PARA QUE NO SE PIERDA EL TAMAÑO)
-    const originalSubirLogo = window.subirLogo;
-    window.subirLogo = function(file) {
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            db.logo = e.target.result;
-            const logoHeader = document.getElementById('shop-logo-header');
-            if(logoHeader) {
-                logoHeader.src = db.logo;
-                logoHeader.style.display = "inline-block";
-                // Re-aplicamos el tamaño del slider tras cambiar la imagen
-                const slider = document.getElementById('logo-size-ctrl');
-                if(slider) logoHeader.style.width = slider.value + "px";
-            }
-            document.getElementById('bg-logo').src = db.logo;
-        };
-        reader.readAsDataURL(file);
-    };
-
-})();
-</script>
-<script>
-(function() {
-    // 1. SOLUCIÓN AL TAMAÑO DEL LOGO (ROMPE EL LÍMITE DE 125PX)
-    // Inyectamos un estilo nuevo que anula la restricción de altura del CSS base
-    const styleLogoFix = document.createElement('style');
-    styleLogoFix.innerHTML = `
-        #shop-logo-header { 
-            max-height: none !important; 
-            height: auto !important; 
-            transition: width 0.2s ease;
-        }
-        header { height: auto !important; padding: 30px 10px !important; }
-    `;
-    document.head.appendChild(styleLogoFix);
-
-    // 2. CONTROL DE TAMAÑO EN EL PANEL (SIN TOCAR EL HTML EXISTENTE)
-    const panelReferencia = document.getElementById('casillas-container');
-    if (panelReferencia && !document.getElementById('logo-size-ctrl')) {
-        const divSize = document.createElement('div');
-        divSize.style = "margin:15px 0; padding:15px; background:#f8f9fa; border-radius:10px; border:1px solid #D4AF37;";
-        divSize.innerHTML = `
-            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:8px; color:#1A1A1A;">
-                📏 ANCHO DEL LOGO: <span id="val-size">250</span>px
-            </label>
-            <input type="range" id="logo-size-ctrl" min="50" max="800" value="${db.logoSize || 250}" style="width:100%; cursor:pointer; accent-color:#D4AF37;">
-        `;
-        panelReferencia.parentNode.insertBefore(divSize, panelReferencia);
-
-        const aplicarAncho = (px) => {
-            document.getElementById('val-size').innerText = px;
-            const img = document.getElementById('shop-logo-header');
-            if(img) img.style.setProperty('width', px + 'px', 'important');
-            db.logoSize = px;
-        };
-
-        const slider = document.getElementById('logo-size-ctrl');
-        slider.oninput = (e) => aplicarAncho(e.target.value);
-        
-        // Aplicar tamaño guardado al inicio
-        setTimeout(() => aplicarAncho(slider.value), 200);
-    }
-
-    // 3. BOTÓN DE COMPARTIR CATÁLOGO (FLOATING ACTION BUTTON)
-    if (!document.getElementById('btn-compartir-vip')) {
-        const btnShare = document.createElement('button');
-        btnShare.id = 'btn-compartir-vip';
-        btnShare.innerHTML = '✨ Compartir Catálogo VIP';
-        btnShare.style = `
-            position: fixed; bottom: 80px; right: 20px; 
-            background: linear-gradient(145deg, #D4AF37, #B8860B); 
-            color: #1A1A1A; padding: 12px 20px; border-radius: 50px; 
-            cursor: pointer; z-index: 9999; font-weight: 800; 
-            font-size: 11px; border: 2px solid #1A1A1A; 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-transform: uppercase;
-        `;
-        document.body.appendChild(btnShare);
-
-        btnShare.onclick = () => {
-            const urlLimpia = window.location.href.split('?')[0].split('#')[0];
-            const mensaje = `⭐ *${db.nombreTienda} | Luxury Perfumery* ⭐%0A%0A¡Hola! Te comparto nuestro catálogo de fragancias exclusivas. Puedes verlo aquí:%0A%0A${urlLimpia}`;
-            window.open(`https://wa.me/?text=${mensaje}`, '_blank');
-        };
-    }
-
-    // 4. VINCULACIÓN CON EL GUARDADO (CAPTURA EL TAMAÑO ANTES DE QUE EL CÓDIGO BASE GUARDE)
-    const btnGuardarOriginal = document.querySelector('.btn-save-all');
-    if (btnGuardarOriginal) {
-        btnGuardarOriginal.addEventListener('click', () => {
-            const slider = document.getElementById('logo-size-ctrl');
-            if(slider) {
-                db.logoSize = slider.value;
-                // Como el código base guarda el objeto 'db' en localStorage justo después de este click, 
-                // el tamaño quedará almacenado automáticamente.
-            }
-        });
-    }
-
-    // 5. SOPORTE PARA DISPONIBILIDAD (MEMORIA DE CONFIGURACIÓN)
-    // El código base ya tiene el select de disponibilidad, este fragmento asegura
-    // que se mantenga la coherencia visual si el usuario añade productos nuevos.
-    const inputDispo = document.getElementById('disponibilidad');
-    if (inputDispo) {
-        inputDispo.addEventListener('change', () => {
-            if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
-        });
-    }
-
-})();
-</script>
-<script>
-(function() {
-    // 1. CREAR EL BOTÓN DE CAMBIO DE FORMATO (LISTA/CUADRÍCULA)
-    // Se insertará automáticamente en la sección del cliente al cargar
-    const inyectarSelectorVista = () => {
-        const seccionCliente = document.getElementById('seccion-cliente');
-        if (seccionCliente && !document.getElementById('selector-formato-cliente')) {
-            const controles = document.createElement('div');
-            controles.id = 'selector-formato-cliente';
-            controles.style = "text-align:center; margin-bottom:20px;";
-            controles.innerHTML = `
-                <button id="view-grid" style="padding:8px 15px; border-radius:20px; border:2px solid var(--dorado); background:var(--dorado); cursor:pointer; font-weight:bold; margin:5px;">⣿ Cuadrícula</button>
-                <button id="view-list" style="padding:8px 15px; border-radius:20px; border:2px solid #ddd; background:white; cursor:pointer; font-weight:bold; margin:5px;">☰ Lista</button>
-            `;
-            // Insertar después del buscador
-            const buscador = document.getElementById('search-input').parentNode;
-            buscador.parentNode.insertBefore(controles, buscador.nextSibling);
-
-            const btnGrid = document.getElementById('view-grid');
-            const btnList = document.getElementById('view-list');
-            const contenedor = document.getElementById('catalogo-container');
-
-            // 2. LÓGICA DE CAMBIO VISUAL SIN TOCAR EL RENDER
-            btnGrid.onclick = () => {
-                contenedor.style.display = "grid";
-                contenedor.style.gridTemplateColumns = "repeat(auto-fill, minmax(280px, 1fr))";
-                btnGrid.style.background = "var(--dorado)";
-                btnList.style.background = "white";
-                // Quitamos estilos de lista a las cards
-                document.querySelectorAll('.card').forEach(c => {
-                    c.style.display = "block";
-                    c.style.textAlign = "center";
-                    const img = c.querySelector('img');
-                    if(img) img.style.width = "100%";
-                });
-            };
-
-            btnList.onclick = () => {
-                contenedor.style.display = "flex";
-                contenedor.style.flexDirection = "column";
-                contenedor.style.gap = "10px";
-                btnList.style.background = "var(--dorado)";
-                btnGrid.style.background = "white";
-                // Convertimos las cards en filas
-                document.querySelectorAll('.card').forEach(c => {
-                    c.style.display = "flex";
-                    c.style.alignItems = "center";
-                    c.style.textAlign = "left";
-                    c.style.padding = "10px";
-                    const img = c.querySelector('img');
-                    if(img) { img.style.width = "80px"; img.style.height = "80px"; img.style.marginRight = "15px"; img.style.marginBottom = "0"; }
-                    const btnWs = c.querySelector('a');
-                    if(btnWs) btnWs.style.marginLeft = "auto";
-                });
-            };
-        }
-    };
-
-    // 3. OBSERVAR CAMBIOS: Como tu render() se ejecuta al buscar, 
-    // necesitamos que si el usuario cambia de vista, se mantenga el formato.
-    const observer = new MutationObserver(() => {
-        const btnList = document.getElementById('view-list');
-        if (btnList && btnList.style.background.includes('rgb(212, 175, 55)')) { // Si "Lista" está activo
-            document.getElementById('view-list').click();
-        }
-    });
-
-    // Iniciar observación del contenedor de productos
-    const target = document.getElementById('catalogo-container');
-    if(target) observer.observe(target, { childList: true });
-
-    // Ejecutar inyección al inicio
-    setTimeout(inyectarSelectorVista, 500);
-
-})();
-</script>
-<script>
-(function() {
-    // 1. INYECTOR DE ESTILO DINÁMICO PARA EL ESPACIADO
-    const styleSpacing = document.createElement('style');
-    styleSpacing.id = 'dinamic-spacing-style';
-    document.head.appendChild(styleSpacing);
-
-    // 2. CREAR EL CONTROL EN EL PANEL DE ADMIN
-    const contenedorConfig = document.getElementById('casillas-container');
-    if (contenedorConfig && !document.getElementById('header-spacing-ctrl')) {
-        const divSpacing = document.createElement('div');
-        divSpacing.style = "margin:15px 0; padding:15px; background:#e9ecef; border-radius:10px; border:1px solid #ced4da;";
-        divSpacing.innerHTML = `
-            <label style="display:block; font-size:11px; font-weight:bold; margin-bottom:8px; color:#495057; text-transform:uppercase;">
-                ↔️ DISTANCIA LOGO - TEXTO: <span id="val-spacing">15</span>px
-            </label>
-            <input type="range" id="header-spacing-ctrl" min="-50" max="100" value="${db.headerSpacing || 15}" style="width:100%; cursor:pointer; accent-color:#1A1A1A;">
-            <p style="font-size:10px; color:#6c757d; margin-top:5px;">(Usa valores negativos para acercarlos más)</p>
-        `;
-        // Lo insertamos después del control de tamaño del logo
-        contenedorConfig.parentNode.insertBefore(divSpacing, contenedorConfig);
-
-        const aplicarEspaciado = (px) => {
-            document.getElementById('val-spacing').innerText = px;
-            // Aplicamos el margen directamente al logo para empujar o atraer el texto
-            styleSpacing.innerHTML = `
-                #shop-logo-header { 
-                    margin-bottom: ${px}px !important; 
-                }
-            `;
-            db.headerSpacing = px;
-        };
-
-        const sliderSpacing = document.getElementById('header-spacing-ctrl');
-        sliderSpacing.oninput = (e) => aplicarEspaciado(e.target.value);
-        
-        // Aplicar valor guardado al cargar
-        setTimeout(() => aplicarEspaciado(sliderSpacing.value), 300);
-    }
-
-    // 3. VINCULACIÓN CON EL BOTÓN DE GUARDADO DEL SISTEMA
-    const btnGuardarSistema = document.querySelector('.btn-save-all');
-    if (btnGuardarSistema) {
-        btnGuardarSistema.addEventListener('click', () => {
-            const s = document.getElementById('header-spacing-ctrl');
-            if(s) {
-                db.headerSpacing = s.value;
-                // El código base se encargará de hacer el localStorage.setItem
-            }
-        });
-    }
-})();
-</script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
-    authDomain: "h-essence-shop.firebaseapp.com",
-    databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
-    projectId: "h-essence-shop",
-    storageBucket: "h-essence-shop.firebasestorage.app",
-    messagingSenderId: "128450401838",
-    appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* USA TU CONFIG QUE YA TENIAS */
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_AUTH_DOMAIN",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_STORAGE",
+  messagingSenderId: "TU_MSG_ID",
+  appId: "TU_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const firestore = getFirestore(app);
+const DB_REF = doc(firestore,"tienda","datos");
+
+/* BASE DE DATOS */
+let db = {
+  productos:[],
+  nombreTienda:"H-ESSENCE",
+  slogan:"Luxury Perfumery",
+  logo:""
+};
+
+let esAdmin=false;
+let currentImg="";
+
+/* GUARDAR EN NUBE */
+async function guardarTodo(){
+  await setDoc(DB_REF,db);
+}
+
+/* CARGAR DE NUBE */
+async function cargarTodo(){
+  const snap=await getDoc(DB_REF);
+  if(snap.exists()){
+    db=snap.data();
+  }
+}
+
+/* HEADER */
+function actualizarHeader(){
+
+  document.getElementById("shop-name-display").innerText=db.nombreTienda;
+  document.getElementById("shop-slogan-display").innerText=db.slogan;
+
+  if(db.logo){
+    const logo=document.getElementById("shop-logo-header");
+    logo.src=db.logo;
+    logo.style.display="block";
+  }
+
+}
+
+/* SUBIR LOGO */
+function subirLogo(file){
+
+  const reader=new FileReader();
+
+  reader.onload=e=>{
+    db.logo=e.target.result;
+    guardarTodo();
+    actualizarHeader();
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const rdb = firebase.database();
+  reader.readAsDataURL(file);
 
-  // INICIO DE SESIÓN AUTOMÁTICO PARA ADMINISTRADOR
-  firebase.auth().signInWithEmailAndPassword("joel_ahg13@hotmail.com", "jh3n0E40*")
-    .then(() => console.log("Conectado como Administrador: Joel"))
-    .catch((error) => console.error("Error de acceso:", error.message));
+}
 
-  // 1. ESCUCHAR CAMBIOS (Para clientes y para ti)
-  // Mantiene actualizada la disponibilidad inmediata o por pedido
-  rdb.ref('catalogo_v1').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      window.db = data;
-      if (typeof render === 'function') render(); 
-      if (typeof actualizarUIHeader === 'function') actualizarUIHeader();
-    }
+/* AGREGAR O EDITAR PRODUCTO */
+function procesarProducto(){
+
+  const id=document.getElementById("edit-id").value;
+
+  const producto={
+    id:id?parseInt(id):Date.now(),
+    ref:document.getElementById("referencia").value,
+    nombre:document.getElementById("nombre").value,
+    onzas:document.getElementById("onzas").value,
+    venta:parseFloat(document.getElementById("venta").value)||0,
+    costo:parseFloat(document.getElementById("costo").value)||0,
+    stock:parseInt(document.getElementById("stock-cantidad").value)||0,
+    img:currentImg||"https://via.placeholder.com/300"
+  };
+
+  if(!producto.nombre){
+    alert("Debes poner nombre");
+    return;
+  }
+
+  if(id){
+    const index=db.productos.findIndex(p=>p.id==producto.id);
+    db.productos[index]=producto;
+  }else{
+    db.productos.push(producto);
+  }
+
+  guardarTodo();
+  render();
+  limpiarForm();
+
+}
+
+/* BORRAR */
+function borrar(id){
+
+  if(!confirm("Eliminar producto?")) return;
+
+  db.productos=db.productos.filter(p=>p.id!==id);
+
+  guardarTodo();
+  render();
+
+}
+
+/* EDITAR */
+function editar(id){
+
+  const p=db.productos.find(p=>p.id==id);
+
+  document.getElementById("edit-id").value=p.id;
+  document.getElementById("referencia").value=p.ref;
+  document.getElementById("nombre").value=p.nombre;
+  document.getElementById("onzas").value=p.onzas;
+  document.getElementById("venta").value=p.venta;
+  document.getElementById("costo").value=p.costo;
+  document.getElementById("stock-cantidad").value=p.stock;
+
+  currentImg=p.img;
+
+}
+
+/* RENDER PRODUCTOS */
+function render(){
+
+  const tabla=document.getElementById("tabla-body");
+  const catalogo=document.getElementById("catalogo-container");
+
+  tabla.innerHTML="";
+  catalogo.innerHTML="";
+
+  db.productos.forEach(p=>{
+
+    const ganancia=p.venta-p.costo;
+
+    tabla.innerHTML+=`
+    <tr>
+      <td>${p.ref}</td>
+      <td>${p.nombre}</td>
+      <td>${p.onzas}</td>
+      <td>${p.stock}</td>
+      <td>${p.costo}</td>
+      <td>${p.venta}</td>
+      <td>${ganancia}</td>
+      <td>
+        <button onclick="editar(${p.id})">✏️</button>
+        <button onclick="borrar(${p.id})">🗑️</button>
+      </td>
+    </tr>
+    `;
+
+    catalogo.innerHTML+=`
+    <div class="card">
+      <img src="${p.img}">
+      <h3>${p.nombre}</h3>
+      <p style="font-weight:bold;color:gold;">RD$ ${p.venta}</p>
+      <a href="https://wa.me/18097530456?text=Hola quiero ${p.nombre}">
+      Comprar
+      </a>
+    </div>
+    `;
+
   });
 
-  // 2. GUARDAR (Solo Joel tiene permiso gracias al login de arriba)
-  document.addEventListener('click', (e) => {
-    if (e.target.innerText.includes('Guardar') || e.target.classList.contains('btn-save-all')) {
-      rdb.ref('catalogo_v1').set(window.db)
-        .then(() => alert("✅ ¡Catálogo actualizado y protegido en la nube!"))
-        .catch((err) => alert("❌ Error: No tienes permiso. Verifica que tu usuario esté activo en Firebase."));
-    }
-  });
+}
+
+/* CAMBIAR VISTA */
+function cambiarVista(){
+
+  esAdmin=!esAdmin;
+
+  document.getElementById("panel-admin")
+  .classList.toggle("hidden",!esAdmin);
+
+  document.getElementById("seccion-cliente")
+  .classList.toggle("hidden",esAdmin);
+
+}
+
+/* LIMPIAR FORM */
+function limpiarForm(){
+
+  document.getElementById("edit-id").value="";
+  document.getElementById("referencia").value="";
+  document.getElementById("nombre").value="";
+  document.getElementById("onzas").value="";
+  document.getElementById("venta").value="";
+  document.getElementById("costo").value="";
+  document.getElementById("stock-cantidad").value="1";
+
+  currentImg="";
+
+}
+
+/* INICIO */
+window.addEventListener("load",async()=>{
+
+  await cargarTodo();
+
+  actualizarHeader();
+
+  render();
+
+});
+
+/* EXPONER FUNCIONES */
+window.procesarProducto=procesarProducto;
+window.borrar=borrar;
+window.editar=editar;
+window.cambiarVista=cambiarVista;
+window.subirLogo=subirLogo;
+
 </script>
-</body>
