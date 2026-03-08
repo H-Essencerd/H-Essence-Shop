@@ -401,6 +401,7 @@
       border: 1px solid #eee;
       text-align: center;
       white-space: nowrap;
+      vertical-align: top;
     }
 
     .badge-dispo {
@@ -960,6 +961,14 @@
           <small>Productos agotados</small>
           <strong id="stat-agotados">0</strong>
         </div>
+        <div class="stat-card">
+          <small>Gastos operativos</small>
+          <strong id="stat-gastos-total">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Ganancia neta real</small>
+          <strong id="stat-ganancia-neta">RD$ 0</strong>
+        </div>
       </div>
 
       <div style="margin-top:18px;">
@@ -1117,6 +1126,7 @@
       <input type="text" id="referencia" placeholder="Ref/SKU" oninput="updateLivePreview()">
       <input type="text" id="nombre" placeholder="Nombre Perfume" oninput="updateLivePreview()">
       <input type="text" id="categoria" placeholder="Categoría / Marca (Ej: Lattafa, Dior, Árabe)" oninput="updateLivePreview()">
+      <textarea id="descripcion" rows="3" placeholder="Descripción: hombre, mujer, unisex, notas principales, estilo del aroma, ocasión..." oninput="updateLivePreview()"></textarea>
       <input type="text" id="onzas" placeholder="Tamaño (Ej: 100)" oninput="updateLivePreview()">
 
       <select id="disponibilidad" onchange="updateLivePreview()">
@@ -1148,6 +1158,7 @@
         <div class="section-actions">
           <button class="btn-mini btn-excel" onclick="exportarAExcel()">📊 Exportar inventario</button>
           <button class="btn-mini btn-excel" onclick="exportarVentasAExcel()">🧾 Exportar salidas</button>
+          <button class="btn-mini btn-excel" onclick="exportarGastosAExcel()">💸 Exportar gastos</button>
         </div>
       </div>
 
@@ -1157,7 +1168,7 @@
           <input
             type="text"
             id="admin-search-input"
-            placeholder="Busca por nombre, referencia, categoría o tamaño..."
+            placeholder="Busca por nombre, referencia, categoría, descripción o tamaño..."
             oninput="renderAdminDebounced()">
         </div>
       </div>
@@ -1169,6 +1180,7 @@
               <th>Ref</th>
               <th>Producto</th>
               <th>Categoría</th>
+              <th>Descripción</th>
               <th>Tam.</th>
               <th>Estado</th>
               <th>Stock</th>
@@ -1252,6 +1264,94 @@
             </tr>
           </thead>
           <tbody id="tabla-ventas-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="admin-box">
+      <div class="section-head">
+        <h4>💸 Gastos del negocio</h4>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <small>Gastos de hoy</small>
+          <strong id="gastos-hoy-total">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Gastos de este mes</small>
+          <strong id="gastos-mes-total">RD$ 0</strong>
+        </div>
+        <div class="stat-card">
+          <small>Ganancia mes después de gastos</small>
+          <strong id="gastos-balance-mes">RD$ 0</strong>
+        </div>
+      </div>
+
+      <div class="calculator-grid" style="margin-top:15px;">
+        <div>
+          <label class="small-label">Fecha</label>
+          <input type="date" id="gasto-fecha">
+        </div>
+        <div>
+          <label class="small-label">Concepto</label>
+          <input type="text" id="gasto-concepto" placeholder="Ej: Compra de fundas">
+        </div>
+        <div>
+          <label class="small-label">Categoría</label>
+          <select id="gasto-categoria">
+            <option value="Empaque">Empaque</option>
+            <option value="Servicios">Servicios</option>
+            <option value="Logística">Logística</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Operativo">Operativo</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div>
+          <label class="small-label">Monto</label>
+          <input type="number" id="gasto-monto" min="0" step="0.01" placeholder="Ej: 1500">
+        </div>
+        <div style="grid-column: 1 / -1;">
+          <label class="small-label">Nota</label>
+          <textarea id="gasto-nota" rows="2" placeholder="Ej: compra semanal, pago de luz, etc."></textarea>
+        </div>
+        <div style="display:flex; align-items:end;">
+          <button class="btn-mini btn-green" style="width:100%;" onclick="agregarGasto()">➕ Registrar gasto</button>
+        </div>
+      </div>
+
+      <div class="calculator-grid" style="margin-top:15px;">
+        <div>
+          <label class="small-label">Buscar gasto</label>
+          <input type="text" id="gastos-busqueda" placeholder="Concepto, categoría o nota..." oninput="renderGastos()">
+        </div>
+        <div>
+          <label class="small-label">Desde</label>
+          <input type="date" id="gastos-fecha-desde" onchange="renderGastos()">
+        </div>
+        <div>
+          <label class="small-label">Hasta</label>
+          <input type="date" id="gastos-fecha-hasta" onchange="renderGastos()">
+        </div>
+        <div style="display:flex; align-items:end;">
+          <button class="btn-mini btn-gray" style="width:100%;" onclick="limpiarFiltrosGastos()">Limpiar filtros</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Concepto</th>
+              <th>Categoría</th>
+              <th>Monto</th>
+              <th>Nota</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-gastos-body"></tbody>
         </table>
       </div>
     </div>
@@ -1437,6 +1537,7 @@
     const defaultDB = {
       productos: [],
       ventasHistorial: [],
+      gastos: [],
       nombreTienda: "H-ESSENCE",
       slogan: "Luxury Perfumery RD",
       logo: "",
@@ -1525,6 +1626,10 @@
       const offset = d.getTimezoneOffset();
       const local = new Date(d.getTime() - offset * 60000);
       return local.toISOString();
+    }
+
+    function fechaSoloISO() {
+      return fechaLocalISO().slice(0, 10);
     }
 
     function fechaBonita(iso) {
@@ -1624,6 +1729,7 @@
     function actualizarDashboardAdmin() {
       const productos = Array.isArray(db.productos) ? db.productos : [];
       const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
+      const gastos = Array.isArray(db.gastos) ? db.gastos : [];
 
       let totalProductos = productos.length;
       let totalUnidades = 0;
@@ -1651,6 +1757,8 @@
       });
 
       const gananciaReal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
+      const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+      const gananciaNeta = gananciaReal - totalGastos;
       const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
 
       const byMargen = [...productos]
@@ -1675,6 +1783,8 @@
       setText('stat-ganancia-real', formatMoney(gananciaReal));
       setText('stat-bajo-stock', bajoStock);
       setText('stat-agotados', agotados);
+      setText('stat-gastos-total', formatMoney(totalGastos));
+      setText('stat-ganancia-neta', formatMoney(gananciaNeta));
 
       const topBox = document.getElementById('top-margen-lista');
       if (topBox) {
@@ -1733,12 +1843,15 @@
 
     function actualizarResumenVentasPanel() {
       const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
+      const gastos = Array.isArray(db.gastos) ? db.gastos : [];
       const hoy = new Date();
 
       let vendidoHoy = 0;
       let gananciaHoy = 0;
       let vendidoMes = 0;
       let gananciaMes = 0;
+      let gastosHoy = 0;
+      let gastosMes = 0;
 
       ventas.forEach(v => {
         const fecha = new Date(v.fecha);
@@ -1755,6 +1868,19 @@
         }
       });
 
+      gastos.forEach(g => {
+        const fecha = new Date(g.fecha);
+        if (isNaN(fecha)) return;
+
+        if (esMismoDia(fecha, hoy)) {
+          gastosHoy += Number(g.monto) || 0;
+        }
+
+        if (esMismoMes(fecha, hoy)) {
+          gastosMes += Number(g.monto) || 0;
+        }
+      });
+
       const set = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.textContent = val;
@@ -1764,6 +1890,10 @@
       set('ventas-hoy-ganancia', formatMoney(gananciaHoy));
       set('ventas-mes-total', formatMoney(vendidoMes));
       set('ventas-mes-ganancia', formatMoney(gananciaMes));
+
+      set('gastos-hoy-total', formatMoney(gastosHoy));
+      set('gastos-mes-total', formatMoney(gastosMes));
+      set('gastos-balance-mes', formatMoney(gananciaMes - gastosMes));
     }
 
     function limpiarFiltrosVentas() {
@@ -1854,6 +1984,136 @@
       actualizarResumenVentasPanel();
     }
 
+    function limpiarFiltrosGastos() {
+      const desde = document.getElementById('gastos-fecha-desde');
+      const hasta = document.getElementById('gastos-fecha-hasta');
+      const busqueda = document.getElementById('gastos-busqueda');
+
+      if (desde) desde.value = "";
+      if (hasta) hasta.value = "";
+      if (busqueda) busqueda.value = "";
+
+      renderGastos();
+    }
+
+    function renderGastos() {
+      const tbody = document.getElementById('tabla-gastos-body');
+      if (!tbody) return;
+
+      const gastos = Array.isArray(db.gastos) ? db.gastos : [];
+      const desdeVal = document.getElementById('gastos-fecha-desde')?.value || "";
+      const hastaVal = document.getElementById('gastos-fecha-hasta')?.value || "";
+      const busquedaVal = normalizeText(document.getElementById('gastos-busqueda')?.value || "");
+
+      let desde = null;
+      let hasta = null;
+
+      if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
+      if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
+
+      const filtrados = gastos.filter(g => {
+        const fecha = new Date(g.fecha);
+        if (isNaN(fecha)) return false;
+        if (desde && fecha < desde) return false;
+        if (hasta && fecha > hasta) return false;
+
+        if (busquedaVal) {
+          const texto = normalizeText([g.concepto, g.categoria, g.nota].join(" "));
+          if (!texto.includes(busquedaVal)) return false;
+        }
+        return true;
+      });
+
+      if (!filtrados.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="opacity:.7; text-align:center;">No hay gastos registrados para ese filtro.</td>
+          </tr>
+        `;
+        actualizarResumenVentasPanel();
+        actualizarDashboardAdmin();
+        return;
+      }
+
+      tbody.innerHTML = filtrados.map(g => `
+        <tr>
+          <td>${fechaBonita(g.fecha)}</td>
+          <td>${safeText(g.concepto)}</td>
+          <td>${safeText(g.categoria)}</td>
+          <td>${formatMoney(g.monto || 0)}</td>
+          <td>${safeText(g.nota || "—")}</td>
+          <td>
+            ${esAdmin ? `<button onclick="borrarGasto(${g.id})">🗑️</button>` : '—'}
+          </td>
+        </tr>
+      `).join('');
+
+      actualizarResumenVentasPanel();
+      actualizarDashboardAdmin();
+    }
+
+    async function agregarGasto() {
+      if (!esAdmin) return;
+
+      const fecha = document.getElementById('gasto-fecha')?.value || fechaSoloISO();
+      const concepto = safeText(document.getElementById('gasto-concepto')?.value || "").trim();
+      const categoria = safeText(document.getElementById('gasto-categoria')?.value || "Operativo");
+      const monto = Number(document.getElementById('gasto-monto')?.value) || 0;
+      const nota = safeText(document.getElementById('gasto-nota')?.value || "").trim();
+
+      if (!concepto) {
+        mostrarAlerta("❌ Debes indicar el concepto del gasto", "error");
+        return;
+      }
+
+      if (monto <= 0) {
+        mostrarAlerta("❌ El monto del gasto debe ser mayor que 0", "error");
+        return;
+      }
+
+      if (!Array.isArray(db.gastos)) db.gastos = [];
+
+      db.gastos.unshift({
+        id: Date.now() + Math.floor(Math.random() * 10000),
+        fecha: `${fecha}T12:00:00`,
+        concepto,
+        categoria,
+        monto,
+        nota
+      });
+
+      db._updatedAt = Date.now();
+      saveLocal();
+      renderGastos();
+      actualizarResumenVentasPanel();
+      actualizarDashboardAdmin();
+
+      const ok = await guardarNube(true);
+
+      document.getElementById('gasto-fecha').value = fechaSoloISO();
+      document.getElementById('gasto-concepto').value = "";
+      document.getElementById('gasto-categoria').value = "Empaque";
+      document.getElementById('gasto-monto').value = "";
+      document.getElementById('gasto-nota').value = "";
+
+      mostrarAlerta(ok ? "✅ Gasto registrado" : "⚠️ Gasto guardado localmente");
+    }
+
+    async function borrarGasto(id) {
+      if (!esAdmin) return;
+      const ok = confirm("¿Eliminar este gasto?");
+      if (!ok) return;
+
+      db.gastos = (db.gastos || []).filter(g => g.id !== id);
+      db._updatedAt = Date.now();
+      saveLocal();
+      renderGastos();
+      actualizarResumenVentasPanel();
+      actualizarDashboardAdmin();
+      await guardarNube(true);
+      mostrarAlerta("🗑️ Gasto eliminado", "error");
+    }
+
     function setModoAdmin(on) {
       const user = firebase.auth().currentUser;
       esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
@@ -1880,6 +2140,7 @@
       dibujarRuleta();
       actualizarDashboardAdmin();
       renderHistorialVentas();
+      renderGastos();
     }
 
     function cambiarVista() {
@@ -1958,6 +2219,7 @@
 
         if (!Array.isArray(db.productos)) db.productos = [];
         if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+        if (!Array.isArray(db.gastos)) db.gastos = [];
 
         saveLocal();
         ultimoGuardadoHash = getDBHash();
@@ -1967,6 +2229,7 @@
         render();
         actualizarDashboardAdmin();
         renderHistorialVentas();
+        renderGastos();
       });
     }
 
@@ -2175,6 +2438,7 @@
       const n = safeText(document.getElementById('nombre')?.value || "Nombre");
       const v = safeText(document.getElementById('venta')?.value || "0");
       const c = safeText(document.getElementById('categoria')?.value || "Categoría");
+      const d = safeText(document.getElementById('descripcion')?.value || "");
       let o = safeText(document.getElementById('onzas')?.value || "");
       const disp = safeText(document.getElementById('disponibilidad')?.value || "inmediata");
 
@@ -2193,12 +2457,13 @@
           <img src="${img}">
           <h3>${n}</h3>
           <p style="font-size:12px; opacity:.7;">${c}</p>
+          ${d ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${d}</p>` : ''}
           <p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p>
         </div>`;
     }
 
     function resetForm() {
-      const ids = ['referencia','nombre','categoria','onzas','venta','costo','stock-cantidad','stock-minimo'];
+      const ids = ['referencia','nombre','categoria','descripcion','onzas','venta','costo','stock-cantidad','stock-minimo'];
       const edit = document.getElementById('edit-id');
       if (edit) edit.value = "";
       ids.forEach(id => {
@@ -2235,6 +2500,7 @@
         ref: safeText(document.getElementById('referencia')?.value || "S/R"),
         nombre: safeText(document.getElementById('nombre')?.value || ""),
         categoria: safeText(document.getElementById('categoria')?.value || "General"),
+        descripcion: safeText(document.getElementById('descripcion')?.value || ""),
         onzas: ozValue || "N/A",
         dispo: safeText(document.getElementById('disponibilidad')?.value || "inmediata"),
         venta: parseFloat(document.getElementById('venta')?.value) || 0,
@@ -2299,6 +2565,7 @@
       document.getElementById('referencia').value = p.ref;
       document.getElementById('nombre').value = p.nombre;
       document.getElementById('categoria').value = p.categoria || "General";
+      document.getElementById('descripcion').value = p.descripcion || "";
       document.getElementById('onzas').value = p.onzas;
       document.getElementById('disponibilidad').value = p.dispo || "inmediata";
       document.getElementById('venta').value = p.venta;
@@ -2528,6 +2795,7 @@
           Referencia: p.ref,
           Nombre: p.nombre,
           Categoria: p.categoria || "General",
+          Descripcion: p.descripcion || "",
           Tamaño: p.onzas,
           EstadoComercial: p.dispo === 'inmediata' ? 'En Stock' : 'Por Pedido',
           EstadoInventario: estadoInv.label,
@@ -2610,6 +2878,49 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Salidas");
       XLSX.writeFile(wb, "H-Essence_Salidas.xlsx");
+    }
+
+    function exportarGastosAExcel() {
+      const gastos = Array.isArray(db.gastos) ? db.gastos : [];
+      if (!gastos.length) return alert("No hay gastos registrados");
+
+      const desdeVal = document.getElementById('gastos-fecha-desde')?.value || "";
+      const hastaVal = document.getElementById('gastos-fecha-hasta')?.value || "";
+      const busquedaVal = normalizeText(document.getElementById('gastos-busqueda')?.value || "");
+
+      let desde = null;
+      let hasta = null;
+
+      if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
+      if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
+
+      const filtrados = gastos.filter(g => {
+        const fecha = new Date(g.fecha);
+        if (isNaN(fecha)) return false;
+        if (desde && fecha < desde) return false;
+        if (hasta && fecha > hasta) return false;
+
+        if (busquedaVal) {
+          const texto = normalizeText([g.concepto, g.categoria, g.nota].join(" "));
+          if (!texto.includes(busquedaVal)) return false;
+        }
+        return true;
+      });
+
+      if (!filtrados.length) return alert("No hay gastos para exportar con ese filtro");
+
+      const data = filtrados.map(g => ({
+        Fecha: fechaBonita(g.fecha),
+        Concepto: g.concepto,
+        Categoria: g.categoria,
+        Monto: g.monto || 0,
+        Nota: g.nota || ""
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Gastos");
+      XLSX.writeFile(wb, "H-Essence_Gastos.xlsx");
     }
 
     function partirTextoEnLineas(ctx, texto, maxWidth) {
@@ -2872,6 +3183,7 @@
           safeText(p.ref),
           safeText(p.nombre),
           safeText(p.categoria || "General"),
+          safeText(p.descripcion || ""),
           safeText(p.onzas)
         ].join(" ").toLowerCase();
 
@@ -2896,6 +3208,7 @@
               <td>${safeText(p.ref)}</td>
               <td>${safeText(p.nombre)}</td>
               <td>${safeText(p.categoria || "General")}</td>
+              <td style="white-space:normal; min-width:220px;">${safeText(p.descripcion || "—")}</td>
               <td>${safeText(p.onzas)}</td>
               <td>${badgeStockTable}</td>
               <td><b>${stock}</b></td>
@@ -2922,7 +3235,8 @@
         const ref = safeText(p.ref).toLowerCase();
         const nom = safeText(p.nombre).toLowerCase();
         const cat = safeText(p.categoria || "General");
-        const coincideBusqueda = !queryCliente || nom.includes(queryCliente) || ref.includes(queryCliente) || cat.toLowerCase().includes(queryCliente);
+        const desc = safeText(p.descripcion || "");
+        const coincideBusqueda = !queryCliente || nom.includes(queryCliente) || ref.includes(queryCliente) || cat.toLowerCase().includes(queryCliente) || desc.toLowerCase().includes(queryCliente);
         const coincideCategoria = !categoriaActiva || cat === categoriaActiva;
 
         if (catalogo && coincideBusqueda && coincideCategoria) {
@@ -2931,10 +3245,10 @@
             : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
 
           const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
-          const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
+          const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Descripción: *${safeText(p.descripcion || "Sin descripción")}*%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
 
           const productUrl = window.location.href.split('#')[0];
-          const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
+          const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nDescripción: ${safeText(p.descripcion || "Sin descripción")}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
           const waShare = `https://wa.me/?text=${shareText}`;
 
           catalogoHTML += `
@@ -2945,6 +3259,7 @@
                 <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
                 <h3>${safeText(p.nombre)}</h3>
                 <p style="font-size:12px; opacity:.7; margin-bottom:4px;">${cat}</p>
+                ${p.descripcion ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${safeText(p.descripcion)}</p>` : ""}
                 <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
 
                 <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank"
@@ -3227,6 +3542,7 @@
         render();
         actualizarDashboardAdmin();
         renderHistorialVentas();
+        renderGastos();
 
         await guardarNube(true);
         mostrarAlerta("✅ Configuración guardada correctamente");
@@ -3258,6 +3574,7 @@
       try {
         if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
         if (!Array.isArray(db.productos)) db.productos = [];
+        if (!Array.isArray(db.gastos)) db.gastos = [];
 
         actualizarUIHeader();
         dibujarRuleta();
@@ -3274,6 +3591,11 @@
 
         const logoHeader = document.getElementById('shop-logo-header');
         const shopName = document.getElementById('shop-name-display');
+
+        const gastoFecha = document.getElementById('gasto-fecha');
+        const gastoCategoria = document.getElementById('gasto-categoria');
+        if (gastoFecha && !gastoFecha.value) gastoFecha.value = fechaSoloISO();
+        if (gastoCategoria && !gastoCategoria.value) gastoCategoria.value = "Empaque";
 
         let adminClicks = 0;
         let adminClickTimer = null;
@@ -3305,6 +3627,7 @@
         actualizarLogoCentroRuleta();
         actualizarDashboardAdmin();
         renderHistorialVentas();
+        renderGastos();
         actualizarBotonesAuth();
       } catch (e) {
         fatal(e);
@@ -3325,8 +3648,13 @@
     window.abrirModalAnularVenta = abrirModalAnularVenta;
     window.cerrarModalAnularVenta = cerrarModalAnularVenta;
     window.confirmarAnularVentaModal = confirmarAnularVentaModal;
+    window.agregarGasto = agregarGasto;
+    window.borrarGasto = borrarGasto;
+    window.renderGastos = renderGastos;
+    window.limpiarFiltrosGastos = limpiarFiltrosGastos;
     window.exportarAExcel = exportarAExcel;
     window.exportarVentasAExcel = exportarVentasAExcel;
+    window.exportarGastosAExcel = exportarGastosAExcel;
     window.subirLogo = subirLogo;
     window.handleFile = handleFile;
     window.quitarFoto = quitarFoto;
