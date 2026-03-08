@@ -3182,11 +3182,36 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
     escucharNube();
     escucharAuth();
 
-    const btnLogin = document.getElementById('btn-login-admin');
     const btnLogout = document.getElementById('btn-logout-admin');
+if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
 
-    if (btnLogin) btnLogin.addEventListener('click', loginAdmin);
-    if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
+const logoHeader = document.getElementById('shop-logo-header');
+const shopName = document.getElementById('shop-name-display');
+
+let adminClicks = 0;
+let adminClickTimer = null;
+
+function adminClickHandler() {
+  adminClicks++;
+
+  clearTimeout(adminClickTimer);
+  adminClickTimer = setTimeout(() => {
+    adminClicks = 0;
+  }, 1800);
+
+  if (adminClicks >= 5) {
+    adminClicks = 0;
+    loginAdmin();
+  }
+}
+
+if (logoHeader) {
+  logoHeader.addEventListener('click', adminClickHandler);
+}
+
+if (shopName) {
+  shopName.addEventListener('click', adminClickHandler);
+}
 
     actualizarBadgeCart();
     aplicarVistaCatalogo();
