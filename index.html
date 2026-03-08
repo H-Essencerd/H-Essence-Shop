@@ -876,9 +876,9 @@
   <img id="bg-logo" src="" alt="">
   <button id="toggle-view" onclick="cambiarVista()">👁️ Vista: Administrador</button>
 
-<button id="btn-logout-admin" type="button" style="position:fixed; top:20px; right:20px; z-index:9999; background:var(--rojo-lose); color:white; border:2px solid white; padding:10px 16px; border-radius:999px; font-weight:900; cursor:pointer; display:none;">
-  🚪 Logout
-</button>
+  <button id="btn-logout-admin" type="button" style="position:fixed; top:20px; right:20px; z-index:9999; background:var(--rojo-lose); color:white; border:2px solid white; padding:10px 16px; border-radius:999px; font-weight:900; cursor:pointer; display:none;">
+    🚪 Logout
+  </button>
 
   <button id="btn-compartir-catalogo" type="button">✨ Compartir Catálogo</button>
 
@@ -1150,16 +1150,17 @@
           <button class="btn-mini btn-excel" onclick="exportarVentasAExcel()">🧾 Exportar salidas</button>
         </div>
       </div>
+
       <div class="calculator-grid" style="margin-top:10px;">
-  <div style="grid-column: 1 / -1;">
-    <label class="small-label">🔎 Buscar producto en inventario</label>
-    <input
-      type="text"
-      id="admin-search-input"
-      placeholder="Busca por nombre, referencia, categoría o tamaño..."
-      oninput="render()">
-  </div>
-</div>
+        <div style="grid-column: 1 / -1;">
+          <label class="small-label">🔎 Buscar producto en inventario</label>
+          <input
+            type="text"
+            id="admin-search-input"
+            placeholder="Busca por nombre, referencia, categoría o tamaño..."
+            oninput="renderAdminDebounced()">
+        </div>
+      </div>
 
       <div class="table-container">
         <table>
@@ -1268,7 +1269,7 @@
     </div>
 
     <div style="text-align:center; padding:20px 20px 10px;">
-      <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="render()" style="max-width:400px; border:2px solid var(--dorado); border-radius:20px;">
+      <input type="text" id="search-input" placeholder="🔍 Buscar perfume..." oninput="renderClienteDebounced()" style="max-width:400px; border:2px solid var(--dorado); border-radius:20px;">
     </div>
 
     <div class="cliente-filtros">
@@ -1424,10 +1425,14 @@
     let currentImg = "";
     let esAdmin = false;
     let guardando = false;
+    let guardadoPendiente = false;
+    let ultimoGuardadoHash = "";
     let rotacionActual = 0;
     let vistaCatalogo = localStorage.getItem("h_view_mode") || "grid";
     let ventaPendienteId = null;
     let anularVentaPendienteId = null;
+    let renderTimerAdmin = null;
+    let renderTimerCliente = null;
 
     const defaultDB = {
       productos: [],
@@ -1452,7 +1457,8 @@
       titleGap: 0,
       sloganGap: 0,
       wheelSound: true,
-      cartEnabled: true
+      cartEnabled: true,
+      _updatedAt: 0
     };
 
     let db = loadLocal() || structuredClone(defaultDB);
@@ -1472,6 +1478,14 @@
       try {
         localStorage.setItem('h_essence_final_db', JSON.stringify(db));
       } catch {}
+    }
+
+    function getDBHash() {
+      try {
+        return JSON.stringify(db);
+      } catch {
+        return String(Date.now());
+      }
     }
 
     function mostrarAlerta(msg, tipo = "exito") {
@@ -1841,32 +1855,32 @@
     }
 
     function setModoAdmin(on) {
-  const user = firebase.auth().currentUser;
-esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
+      const user = firebase.auth().currentUser;
+      esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
 
-  const panel = document.getElementById('panel-admin');
-  const toggle = document.getElementById('toggle-view');
+      const panel = document.getElementById('panel-admin');
+      const toggle = document.getElementById('toggle-view');
 
-  if (panel) {
-    panel.classList.toggle('hidden', !esAdmin);
-  }
+      if (panel) {
+        panel.classList.toggle('hidden', !esAdmin);
+      }
 
-  if (toggle) {
-    toggle.style.display = esAdmin ? 'block' : 'none';
-    toggle.innerText = "👁️ Vista: Administrador";
-  }
+      if (toggle) {
+        toggle.style.display = esAdmin ? 'block' : 'none';
+        toggle.innerText = "👁️ Vista: Administrador";
+      }
 
-  if (!esAdmin && panel) {
-    panel.classList.add('hidden');
-  }
+      if (!esAdmin && panel) {
+        panel.classList.add('hidden');
+      }
 
-  actualizarBotonesAuth();
+      actualizarBotonesAuth();
 
-  render();
-  dibujarRuleta();
-  actualizarDashboardAdmin();
-  renderHistorialVentas();
-}
+      render();
+      dibujarRuleta();
+      actualizarDashboardAdmin();
+      renderHistorialVentas();
+    }
 
     function cambiarVista() {
       if (!esAdmin) return;
@@ -1878,52 +1892,52 @@ esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
     }
 
     async function loginAdmin() {
-  const pass = prompt("Contraseña admin:");
-  if (!pass) return;
+      const pass = prompt("Contraseña admin:");
+      if (!pass) return;
 
-  try {
-    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
-    mostrarAlerta("✅ Login correcto");
-  } catch (e) {
-    console.error(e);
-    mostrarAlerta("❌ Login falló", "error");
-  }
-}
-
-async function logoutAdmin() {
-  try {
-    await firebase.auth().signOut();
-    mostrarAlerta("✅ Sesión cerrada");
-  } catch (e) {
-    console.error(e);
-    mostrarAlerta("❌ No se pudo cerrar sesión", "error");
-  }
-}
-
-function actualizarBotonesAuth() {
-  const btnLogin = document.getElementById('btn-login-admin');
-  const btnLogout = document.getElementById('btn-logout-admin');
-  const toggle = document.getElementById('toggle-view');
-
-  if (btnLogin) btnLogin.style.display = esAdmin ? 'none' : 'block';
-  if (btnLogout) btnLogout.style.display = esAdmin ? 'block' : 'none';
-  if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
-}
-
-function escucharAuth() {
-  firebase.auth().onAuthStateChanged((user) => {
-    const adminActivo = !!user && user.email === ADMIN_EMAIL;
-
-    setModoAdmin(adminActivo);
-
-    if (adminActivo) {
-      cargarInputsAdmin();
+      try {
+        await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
+        mostrarAlerta("✅ Login correcto");
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ Login falló", "error");
+      }
     }
 
-    actualizarBotonesAuth();
-  });
-}
+    async function logoutAdmin() {
+      try {
+        await firebase.auth().signOut();
+        mostrarAlerta("✅ Sesión cerrada");
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ No se pudo cerrar sesión", "error");
+      }
+    }
+
+    function actualizarBotonesAuth() {
+      const btnLogin = document.getElementById('btn-login-admin');
+      const btnLogout = document.getElementById('btn-logout-admin');
+      const toggle = document.getElementById('toggle-view');
+
+      if (btnLogin) btnLogin.style.display = esAdmin ? 'none' : 'block';
+      if (btnLogout) btnLogout.style.display = esAdmin ? 'block' : 'none';
+      if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
+    }
+
+    function escucharAuth() {
+      firebase.auth().onAuthStateChanged((user) => {
+        const adminActivo = !!user && user.email === ADMIN_EMAIL;
+
+        setModoAdmin(adminActivo);
+
+        if (adminActivo) {
+          cargarInputsAdmin();
+        }
+
+        actualizarBotonesAuth();
+      });
+    }
 
     firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
@@ -1931,32 +1945,63 @@ function escucharAuth() {
     function escucharNube() {
       rdb.ref(PATH_DB).on('value', (snapshot) => {
         const data = snapshot.val();
-        if (data && typeof data === 'object') {
-          db = { ...structuredClone(defaultDB), ...data };
-          if (!Array.isArray(db.productos)) db.productos = [];
-          if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-          saveLocal();
-          cargarInputsAdmin();
-          actualizarUIHeader();
-          dibujarRuleta();
-          render();
-          actualizarDashboardAdmin();
-          renderHistorialVentas();
+        if (!data || typeof data !== 'object') return;
+
+        const localUpdated = Number(db?._updatedAt || 0);
+        const remoteUpdated = Number(data?._updatedAt || 0);
+
+        if (guardando && remoteUpdated < localUpdated) {
+          return;
         }
+
+        db = { ...structuredClone(defaultDB), ...data };
+
+        if (!Array.isArray(db.productos)) db.productos = [];
+        if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+
+        saveLocal();
+        ultimoGuardadoHash = getDBHash();
+        cargarInputsAdmin();
+        actualizarUIHeader();
+        dibujarRuleta();
+        render();
+        actualizarDashboardAdmin();
+        renderHistorialVentas();
       });
     }
 
-    async function guardarNube() {
-      if (!esAdmin) return;
-      if (guardando) return;
+    async function guardarNube(forzar = false) {
+      if (!esAdmin) return false;
+
+      const hashActual = getDBHash();
+
+      if (!forzar && hashActual === ultimoGuardadoHash) {
+        return true;
+      }
+
+      if (guardando) {
+        guardadoPendiente = true;
+        return false;
+      }
+
       guardando = true;
+
       try {
+        db._updatedAt = Date.now();
         await rdb.ref(PATH_DB).set(db);
+        ultimoGuardadoHash = getDBHash();
+        return true;
       } catch (e) {
         console.error(e);
         mostrarAlerta("❌ No se pudo guardar en la nube", "error");
+        return false;
       } finally {
         guardando = false;
+
+        if (guardadoPendiente) {
+          guardadoPendiente = false;
+          setTimeout(() => guardarNube(true), 120);
+        }
       }
     }
 
@@ -2047,15 +2092,39 @@ function escucharAuth() {
 
     function handleFile(file) {
       if (!file || !file.type.startsWith('image/')) return;
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        currentImg = e.target.result;
-        const dropText = document.getElementById('drop-text');
-        const delBtn = document.getElementById('btn-del-img');
-        if (dropText) dropText.innerText = "✅ Imagen Lista";
-        if (delBtn) delBtn.style.display = "block";
-        updateLivePreview();
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_W = 700;
+          const MAX_H = 700;
+
+          let { width, height } = img;
+          const scale = Math.min(MAX_W / width, MAX_H / height, 1);
+
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          currentImg = canvas.toDataURL('image/webp', 0.78);
+
+          const dropText = document.getElementById('drop-text');
+          const delBtn = document.getElementById('btn-del-img');
+          if (dropText) dropText.innerText = "✅ Imagen Lista";
+          if (delBtn) delBtn.style.display = "block";
+          updateLivePreview();
+        };
+
+        img.src = e.target.result;
       };
+
       reader.readAsDataURL(file);
     }
 
@@ -2087,10 +2156,11 @@ function escucharAuth() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           db.logo = canvas.toDataURL('image/webp', 0.80);
+          db._updatedAt = Date.now();
 
           saveLocal();
           actualizarUIHeader();
-          await guardarNube();
+          await guardarNube(true);
           mostrarAlerta("✅ Logo actualizado");
         };
         img.src = e.target.result;
@@ -2161,7 +2231,7 @@ function escucharAuth() {
       const existente = id ? db.productos.find(x => x.id === parseInt(id)) : null;
 
       const p = {
-        id: id ? parseInt(id) : Date.now(),
+        id: id ? parseInt(id) : Date.now() + Math.floor(Math.random() * 10000),
         ref: safeText(document.getElementById('referencia')?.value || "S/R"),
         nombre: safeText(document.getElementById('nombre')?.value || ""),
         categoria: safeText(document.getElementById('categoria')?.value || "General"),
@@ -2189,13 +2259,20 @@ function escucharAuth() {
         db.productos.push(p);
       }
 
+      db._updatedAt = Date.now();
       saveLocal();
       render();
       actualizarDashboardAdmin();
       renderHistorialVentas();
+
+      const guardadoOk = await guardarNube(true);
+
       resetForm();
-      await guardarNube();
-      mostrarAlerta(id ? "✏️ Producto actualizado" : "📦 Producto añadido");
+      mostrarAlerta(
+        guardadoOk
+          ? (id ? "✏️ Producto actualizado" : "📦 Producto añadido")
+          : "⚠️ Guardado local, pendiente nube"
+      );
     }
 
     async function borrar(id) {
@@ -2204,11 +2281,12 @@ function escucharAuth() {
       if(!ok) return;
 
       db.productos = (db.productos || []).filter(x => x.id !== id);
+      db._updatedAt = Date.now();
       saveLocal();
       render();
       actualizarDashboardAdmin();
       renderHistorialVentas();
-      await guardarNube();
+      await guardarNube(true);
       mostrarAlerta("🗑️ Producto eliminado", "error");
     }
 
@@ -2360,7 +2438,7 @@ function escucharAuth() {
 
       if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
       db.ventasHistorial.unshift({
-        id: Date.now(),
+        id: Date.now() + Math.floor(Math.random() * 10000),
         productoId: p.id,
         referencia: p.ref,
         nombre: p.nombre,
@@ -2378,12 +2456,13 @@ function escucharAuth() {
         fecha: fechaLocalISO()
       });
 
+      db._updatedAt = Date.now();
       saveLocal();
       render();
       actualizarDashboardAdmin();
       renderHistorialVentas();
       cerrarModalVenta();
-      await guardarNube();
+      await guardarNube(true);
       mostrarAlerta("✅ Salida registrada");
     }
 
@@ -2425,12 +2504,13 @@ function escucharAuth() {
 
       db.ventasHistorial = ventas.filter(v => v.id !== anularVentaPendienteId);
 
+      db._updatedAt = Date.now();
       saveLocal();
       render();
       actualizarDashboardAdmin();
       renderHistorialVentas();
       cerrarModalAnularVenta();
-      await guardarNube();
+      await guardarNube(true);
       mostrarAlerta("✅ Venta anulada correctamente");
     }
 
@@ -2758,17 +2838,24 @@ function escucharAuth() {
       }
     }
 
+    function renderAdminDebounced() {
+      clearTimeout(renderTimerAdmin);
+      renderTimerAdmin = setTimeout(() => render(), 180);
+    }
+
+    function renderClienteDebounced() {
+      clearTimeout(renderTimerCliente);
+      renderTimerCliente = setTimeout(() => render(), 140);
+    }
+
     function render() {
       const queryCliente = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
-const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
+      const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
       const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
       const tabla = document.getElementById('tabla-body');
       const catalogo = document.getElementById('catalogo-container');
       const btnCart = document.getElementById('btn-cart');
       const panelCart = document.getElementById('cart-panel');
-
-      if (tabla) tabla.innerHTML = "";
-      if (catalogo) catalogo.innerHTML = "";
 
       const boxRuleta = document.getElementById('box-ruleta-cliente');
       if (boxRuleta) boxRuleta.classList.toggle('hidden', !db.ruletaVisible);
@@ -2777,16 +2864,19 @@ const queryAdmin = safeText(document.getElementById('admin-search-input')?.value
 
       const productos = Array.isArray(db.productos) ? db.productos : [];
 
+      let tablaHTML = "";
+      let catalogoHTML = "";
+
       productos.forEach(p => {
         const textoAdmin = [
-  safeText(p.ref),
-  safeText(p.nombre),
-  safeText(p.categoria || "General"),
-  safeText(p.onzas)
-].join(" ").toLowerCase();
+          safeText(p.ref),
+          safeText(p.nombre),
+          safeText(p.categoria || "General"),
+          safeText(p.onzas)
+        ].join(" ").toLowerCase();
 
-const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
-        
+        const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
+
         const ganancia = (p.venta || 0) - (p.costo || 0);
         const margen = calcularMargenPorcentaje(p.venta, p.costo);
         const estadoInv = obtenerEstadoInventario(p);
@@ -2800,36 +2890,34 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
           ? '<span class="badge-dispo bg-inmediata">Inmediata</span>'
           : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
 
-        if (tabla && coincideAdmin) {
-  tabla.innerHTML += `<tr>
-    <td>${safeText(p.ref)}</td>
-    <td>${safeText(p.nombre)}</td>
-    <td>${safeText(p.categoria || "General")}</td>
-    <td>${safeText(p.onzas)}</td>
-    <td>${badgeStockTable}</td>
-    <td><b>${stock}</b></td>
-    <td>${p.stockMinimo || 0}</td>
-    <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
-    <td>${p.ventasAcumuladas || 0}</td>
-    <td>${formatMoney(costo)}</td>
-    <td>${formatMoney(venta)}</td>
-    <td style="color:green">${formatMoney(ganancia)}</td>
-    <td>${margen.toFixed(2)}%</td>
-    <td>${formatMoney(inversionTotal)}</td>
-    <td>${formatMoney(valorTotal)}</td>
-    <td>${formatMoney(ganPot)}</td>
-    <td>${fechaBonita(p.ultimaActualizacion)}</td>
-    <td>
-      ${esAdmin ? `
-        <button onclick="editar(${p.id})">✏️</button>
-        <button onclick="abrirModalVenta(${p.id})">📦</button>
-        <button onclick="borrar(${p.id})">🗑️</button>
-      ` : `<span style="opacity:.5">—</span>`}
-    </td>
-  </tr>`;
-}
-
-        if (!catalogo) return;
+        if (tabla && coincideAdmin && esAdmin) {
+          tablaHTML += `
+            <tr>
+              <td>${safeText(p.ref)}</td>
+              <td>${safeText(p.nombre)}</td>
+              <td>${safeText(p.categoria || "General")}</td>
+              <td>${safeText(p.onzas)}</td>
+              <td>${badgeStockTable}</td>
+              <td><b>${stock}</b></td>
+              <td>${p.stockMinimo || 0}</td>
+              <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
+              <td>${p.ventasAcumuladas || 0}</td>
+              <td>${formatMoney(costo)}</td>
+              <td>${formatMoney(venta)}</td>
+              <td style="color:green">${formatMoney(ganancia)}</td>
+              <td>${margen.toFixed(2)}%</td>
+              <td>${formatMoney(inversionTotal)}</td>
+              <td>${formatMoney(valorTotal)}</td>
+              <td>${formatMoney(ganPot)}</td>
+              <td>${fechaBonita(p.ultimaActualizacion)}</td>
+              <td>
+                <button onclick="editar(${p.id})">✏️</button>
+                <button onclick="abrirModalVenta(${p.id})">📦</button>
+                <button onclick="borrar(${p.id})">🗑️</button>
+              </td>
+            </tr>
+          `;
+        }
 
         const ref = safeText(p.ref).toLowerCase();
         const nom = safeText(p.nombre).toLowerCase();
@@ -2837,7 +2925,7 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
         const coincideBusqueda = !queryCliente || nom.includes(queryCliente) || ref.includes(queryCliente) || cat.toLowerCase().includes(queryCliente);
         const coincideCategoria = !categoriaActiva || cat === categoriaActiva;
 
-        if (coincideBusqueda && coincideCategoria) {
+        if (catalogo && coincideBusqueda && coincideCategoria) {
           const badgeStockCard = p.dispo === 'inmediata'
             ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
             : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
@@ -2849,7 +2937,7 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
           const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
           const waShare = `https://wa.me/?text=${shareText}`;
 
-          catalogo.innerHTML += `
+          catalogoHTML += `
             <div class="card">
               <div class="info-lista">
                 ${badgeStockCard}
@@ -2867,14 +2955,16 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
                 ${db.cartEnabled ? `<button class="btn-add-cart" type="button" onclick="addToCart(${p.id})">➕ Agregar al carrito</button>` : ``}
                 <button class="btn-share-product" type="button" onclick="shareProduct('${waShare}', '${safeText(p.nombre).replace(/'/g,"\\'")}')">🔗 Compartir este producto</button>
               </div>
-            </div>`;
+            </div>
+          `;
         }
       });
 
+      if (tabla) tabla.innerHTML = tablaHTML;
+      if (catalogo) catalogo.innerHTML = catalogoHTML;
+
       if (btnCart) btnCart.style.display = db.cartEnabled ? "block" : "none";
-      if (!db.cartEnabled && panelCart) {
-        panelCart.style.display = "none";
-      }
+      if (!db.cartEnabled && panelCart) panelCart.style.display = "none";
 
       actualizarBadgeCart();
       aplicarVistaCatalogo();
@@ -3091,10 +3181,6 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
 
     async function guardarTodo() {
       if (!esAdmin) {
-  mostrarAlerta("❌ No autorizado", "error");
-  return;
-}
-      if (!esAdmin) {
         mostrarAlerta("❌ Solo el administrador puede guardar", "error");
         return;
       }
@@ -3134,6 +3220,7 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
           db.tipos.push(tipo);
         }
 
+        db._updatedAt = Date.now();
         saveLocal();
         actualizarUIHeader();
         dibujarRuleta();
@@ -3141,7 +3228,7 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
         actualizarDashboardAdmin();
         renderHistorialVentas();
 
-        await guardarNube();
+        await guardarNube(true);
         mostrarAlerta("✅ Configuración guardada correctamente");
       } catch (e) {
         console.error(e);
@@ -3168,61 +3255,62 @@ const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
     if (btnEnviarPedido) btnEnviarPedido.addEventListener('click', enviarPedidoWhatsApp);
 
     window.addEventListener('load', async () => {
-  try {
-    if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-    if (!Array.isArray(db.productos)) db.productos = [];
+      try {
+        if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+        if (!Array.isArray(db.productos)) db.productos = [];
 
-    actualizarUIHeader();
-    dibujarRuleta();
-    render();
-    updateLivePreview();
-    activarDragDrop();
-    activarSlidersHeader();
-    actualizarCalculadoraPrecio();
-    escucharNube();
-    escucharAuth();
+        actualizarUIHeader();
+        dibujarRuleta();
+        updateLivePreview();
+        activarDragDrop();
+        activarSlidersHeader();
+        actualizarCalculadoraPrecio();
+        escucharNube();
+        escucharAuth();
+        render();
 
-    const btnLogout = document.getElementById('btn-logout-admin');
-if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
+        const btnLogout = document.getElementById('btn-logout-admin');
+        if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
 
-const logoHeader = document.getElementById('shop-logo-header');
-const shopName = document.getElementById('shop-name-display');
+        const logoHeader = document.getElementById('shop-logo-header');
+        const shopName = document.getElementById('shop-name-display');
 
-let adminClicks = 0;
-let adminClickTimer = null;
+        let adminClicks = 0;
+        let adminClickTimer = null;
 
-function adminClickHandler() {
-  adminClicks++;
+        function adminClickHandler() {
+          adminClicks++;
 
-  clearTimeout(adminClickTimer);
-  adminClickTimer = setTimeout(() => {
-    adminClicks = 0;
-  }, 1800);
+          clearTimeout(adminClickTimer);
+          adminClickTimer = setTimeout(() => {
+            adminClicks = 0;
+          }, 1800);
 
-  if (adminClicks >= 5) {
-    adminClicks = 0;
-    loginAdmin();
-  }
-}
+          if (adminClicks >= 5) {
+            adminClicks = 0;
+            loginAdmin();
+          }
+        }
 
-if (logoHeader) {
-  logoHeader.addEventListener('click', adminClickHandler);
-}
+        if (logoHeader) {
+          logoHeader.addEventListener('click', adminClickHandler);
+        }
 
-if (shopName) {
-  shopName.addEventListener('click', adminClickHandler);
-}
+        if (shopName) {
+          shopName.addEventListener('click', adminClickHandler);
+        }
 
-    actualizarBadgeCart();
-    aplicarVistaCatalogo();
-    actualizarLogoCentroRuleta();
-    actualizarDashboardAdmin();
-    renderHistorialVentas();
-    actualizarBotonesAuth();
-  } catch (e) {
-    fatal(e);
-  }
-});
+        actualizarBadgeCart();
+        aplicarVistaCatalogo();
+        actualizarLogoCentroRuleta();
+        actualizarDashboardAdmin();
+        renderHistorialVentas();
+        actualizarBotonesAuth();
+      } catch (e) {
+        fatal(e);
+      }
+    });
+
     window.cambiarVista = cambiarVista;
     window.guardarTodo = guardarTodo;
     window.loginAdmin = loginAdmin;
@@ -3247,6 +3335,8 @@ if (shopName) {
     window.dibujarRuleta = dibujarRuleta;
     window.girarRuleta = girarRuleta;
     window.render = render;
+    window.renderAdminDebounced = renderAdminDebounced;
+    window.renderClienteDebounced = renderClienteDebounced;
     window.addToCart = addToCart;
     window.shareProduct = shareProduct;
     window.setVistaCatalogo = setVistaCatalogo;
