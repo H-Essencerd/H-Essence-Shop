@@ -570,6 +570,10 @@
 
     input:checked + .slider { background-color: var(--dorado); }
 
+    input:checked + .slider:before {
+      transform: translateX(26px);
+    }
+
     #fatal {
       display:none;
       max-width:900px;
@@ -1268,79 +1272,79 @@
   </div>
 
   <div id="modal-venta" class="modal-backdrop">
-  <div class="modal-box">
-    <div class="modal-head">
-      <b>📦 Registrar salida</b>
-      <button type="button" onclick="cerrarModalVenta()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div>
-        <label class="small-label">Producto</label>
-        <input type="text" id="modal-venta-producto" readonly>
+    <div class="modal-box">
+      <div class="modal-head">
+        <b>📦 Registrar salida</b>
+        <button type="button" onclick="cerrarModalVenta()">✕</button>
       </div>
-
-      <div class="calculator-grid">
+      <div class="modal-body">
         <div>
-          <label class="small-label">Stock disponible</label>
-          <input type="text" id="modal-venta-stock" readonly>
+          <label class="small-label">Producto</label>
+          <input type="text" id="modal-venta-producto" readonly>
         </div>
-        <div>
-          <label class="small-label">Cantidad</label>
-          <input type="number" id="modal-venta-cantidad" min="1" value="1" oninput="recalcularModalVenta()">
-        </div>
-      </div>
 
-      <div class="calculator-grid">
-        <div>
-          <label class="small-label">Tipo de salida</label>
-          <select id="modal-venta-tipo" onchange="recalcularModalVenta()">
-            <option value="venta_normal">Venta normal</option>
-            <option value="descuento_porcentaje">Descuento %</option>
-            <option value="descuento_valor">Descuento RD$</option>
-            <option value="regalo">Regalo</option>
-            <option value="premio">Premio / Promoción</option>
-          </select>
+        <div class="calculator-grid">
+          <div>
+            <label class="small-label">Stock disponible</label>
+            <input type="text" id="modal-venta-stock" readonly>
+          </div>
+          <div>
+            <label class="small-label">Cantidad</label>
+            <input type="number" id="modal-venta-cantidad" min="1" value="1" oninput="recalcularModalVenta()">
+          </div>
         </div>
-        <div>
-          <label class="small-label">Valor descuento</label>
-          <input type="number" id="modal-venta-descuento" min="0" step="0.01" value="0" oninput="recalcularModalVenta()">
-        </div>
-      </div>
 
-      <div>
-        <label class="small-label">Nota</label>
-        <textarea id="modal-venta-nota" rows="2" placeholder="Ej: cliente VIP, regalo, premio de ruleta..."></textarea>
-      </div>
+        <div class="calculator-grid">
+          <div>
+            <label class="small-label">Tipo de salida</label>
+            <select id="modal-venta-tipo" onchange="recalcularModalVenta()">
+              <option value="venta_normal">Venta normal</option>
+              <option value="descuento_porcentaje">Descuento %</option>
+              <option value="descuento_valor">Descuento RD$</option>
+              <option value="regalo">Regalo</option>
+              <option value="premio">Premio / Promoción</option>
+            </select>
+          </div>
+          <div>
+            <label class="small-label">Valor descuento</label>
+            <input type="number" id="modal-venta-descuento" min="0" step="0.01" value="0" oninput="recalcularModalVenta()">
+          </div>
+        </div>
 
-      <div class="calculator-grid">
-        <div class="calc-result">
-          <small>Precio base unitario</small>
-          <strong id="modal-base-unit">RD$ 0</strong>
+        <div>
+          <label class="small-label">Nota</label>
+          <textarea id="modal-venta-nota" rows="2" placeholder="Ej: cliente VIP, regalo, premio de ruleta..."></textarea>
         </div>
-        <div class="calc-result">
-          <small>Descuento unitario</small>
-          <strong id="modal-descuento-unit">RD$ 0</strong>
-        </div>
-        <div class="calc-result">
-          <small>Precio final unitario</small>
-          <strong id="modal-final-unit">RD$ 0</strong>
-        </div>
-        <div class="calc-result">
-          <small>Ingreso total</small>
-          <strong id="modal-ingreso-total">RD$ 0</strong>
-        </div>
-        <div class="calc-result">
-          <small>Ganancia total</small>
-          <strong id="modal-ganancia-total">RD$ 0</strong>
+
+        <div class="calculator-grid">
+          <div class="calc-result">
+            <small>Precio base unitario</small>
+            <strong id="modal-base-unit">RD$ 0</strong>
+          </div>
+          <div class="calc-result">
+            <small>Descuento unitario</small>
+            <strong id="modal-descuento-unit">RD$ 0</strong>
+          </div>
+          <div class="calc-result">
+            <small>Precio final unitario</small>
+            <strong id="modal-final-unit">RD$ 0</strong>
+          </div>
+          <div class="calc-result">
+            <small>Ingreso total</small>
+            <strong id="modal-ingreso-total">RD$ 0</strong>
+          </div>
+          <div class="calc-result">
+            <small>Ganancia total</small>
+            <strong id="modal-ganancia-total">RD$ 0</strong>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-mini btn-gray" type="button" onclick="cerrarModalVenta()">Cancelar</button>
-      <button class="btn-mini btn-green" type="button" onclick="confirmarVentaModal()">Guardar salida</button>
+      <div class="modal-actions">
+        <button class="btn-mini btn-gray" type="button" onclick="cerrarModalVenta()">Cancelar</button>
+        <button class="btn-mini btn-green" type="button" onclick="confirmarVentaModal()">Guardar salida</button>
+      </div>
     </div>
   </div>
-</div>
 
   <div id="modal-anular-venta" class="modal-backdrop">
     <div class="modal-box">
@@ -1490,7 +1494,9 @@
 
     function fechaLocalISO() {
       const d = new Date();
-      return d.toISOString();
+      const offset = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - offset * 60000);
+      return local.toISOString();
     }
 
     function fechaBonita(iso) {
@@ -1561,8 +1567,12 @@
       if (db.logo && logoHeader) {
         logoHeader.src = db.logo;
         logoHeader.style.display = "inline-block";
+      } else if (logoHeader) {
+        logoHeader.src = "";
+        logoHeader.style.display = "none";
       }
-      if (db.logo && logoBg) logoBg.src = db.logo;
+
+      if (logoBg) logoBg.src = db.logo || "";
 
       aplicarLayoutHeader();
       actualizarLogoCentroRuleta();
@@ -1782,35 +1792,35 @@
 
       filtradas.forEach(v => {
         const tipoSalidaTexto = v.tipoSalida === "venta_normal" ? "Venta" :
-                        v.tipoSalida === "descuento_porcentaje" ? "Desc. %" :
-                        v.tipoSalida === "descuento_valor" ? "Desc. RD$" :
-                        v.tipoSalida === "regalo" ? "Regalo" :
-                        v.tipoSalida === "premio" ? "Premio" : "Venta";
+          v.tipoSalida === "descuento_porcentaje" ? "Desc. %" :
+          v.tipoSalida === "descuento_valor" ? "Desc. RD$" :
+          v.tipoSalida === "regalo" ? "Regalo" :
+          v.tipoSalida === "premio" ? "Premio" : "Venta";
 
-const descuentoTexto =
-  v.tipoSalida === "descuento_porcentaje" ? `${Number(v.descuentoValor || 0)}%` :
-  v.tipoSalida === "descuento_valor" ? formatMoney(v.descuentoValor || 0) :
-  v.tipoSalida === "regalo" ? "100%" :
-  v.tipoSalida === "premio" ? "100%" : "—";
+        const descuentoTexto =
+          v.tipoSalida === "descuento_porcentaje" ? `${Number(v.descuentoValor || 0)}%` :
+          v.tipoSalida === "descuento_valor" ? formatMoney(v.descuentoValor || 0) :
+          v.tipoSalida === "regalo" ? "100%" :
+          v.tipoSalida === "premio" ? "100%" : "—";
 
-tbody.innerHTML += `
-  <tr>
-    <td>${fechaBonita(v.fecha)}</td>
-    <td>${tipoSalidaTexto}</td>
-    <td>${safeText(v.referencia)}</td>
-    <td>${safeText(v.nombre)}</td>
-    <td>${safeText(v.categoria || "General")}</td>
-    <td><b>${v.cantidad || 0}</b></td>
-    <td>${descuentoTexto}</td>
-    <td>${formatMoney(v.precioFinalUnitario ?? v.precioUnitario ?? 0)}</td>
-    <td>${formatMoney(v.ingreso || 0)}</td>
-    <td style="color:green;">${formatMoney(v.ganancia || 0)}</td>
-    <td>${safeText(v.nota || "—")}</td>
-    <td>
-      ${esAdmin ? `<button onclick="abrirModalAnularVenta(${v.id})">↩️</button>` : '—'}
-    </td>
-  </tr>
-`;
+        tbody.innerHTML += `
+          <tr>
+            <td>${fechaBonita(v.fecha)}</td>
+            <td>${tipoSalidaTexto}</td>
+            <td>${safeText(v.referencia)}</td>
+            <td>${safeText(v.nombre)}</td>
+            <td>${safeText(v.categoria || "General")}</td>
+            <td><b>${v.cantidad || 0}</b></td>
+            <td>${descuentoTexto}</td>
+            <td>${formatMoney(v.precioFinalUnitario ?? v.precioUnitario ?? 0)}</td>
+            <td>${formatMoney(v.ingreso || 0)}</td>
+            <td style="color:green;">${formatMoney(v.ganancia || 0)}</td>
+            <td>${safeText(v.nota || "—")}</td>
+            <td>
+              ${esAdmin ? `<button onclick="abrirModalAnularVenta(${v.id})">↩️</button>` : '—'}
+            </td>
+          </tr>
+        `;
       });
 
       actualizarResumenVentasPanel();
@@ -2172,154 +2182,155 @@ tbody.innerHTML += `
     }
 
     function abrirModalVenta(id) {
-  if (!esAdmin) return;
+      if (!esAdmin) return;
 
-  const p = (db.productos || []).find(x => x.id === id);
-  if (!p) return;
+      const p = (db.productos || []).find(x => x.id === id);
+      if (!p) return;
 
-  ventaPendienteId = id;
+      ventaPendienteId = id;
 
-  document.getElementById('modal-venta-producto').value =
-    `${safeText(p.nombre)} (${safeText(p.ref)})`;
+      document.getElementById('modal-venta-producto').value =
+        `${safeText(p.nombre)} (${safeText(p.ref)})`;
 
-  document.getElementById('modal-venta-stock').value =
-    Number(p.stock) || 0;
+      document.getElementById('modal-venta-stock').value =
+        Number(p.stock) || 0;
 
-  document.getElementById('modal-venta-cantidad').value = 1;
+      document.getElementById('modal-venta-cantidad').value = 1;
+      document.getElementById('modal-venta-tipo').value = 'venta_normal';
+      document.getElementById('modal-venta-descuento').value = 0;
+      document.getElementById('modal-venta-nota').value = '';
 
-  document.getElementById('modal-venta-tipo').value = 'venta_normal';
-  document.getElementById('modal-venta-descuento').value = 0;
-  document.getElementById('modal-venta-nota').value = '';
+      document.getElementById('modal-venta').style.display = 'flex';
 
-  document.getElementById('modal-venta').style.display = 'flex';
-
-  recalcularModalVenta();
-}
+      recalcularModalVenta();
+    }
 
     function cerrarModalVenta() {
       ventaPendienteId = null;
       document.getElementById('modal-venta').style.display = 'none';
     }
+
     function recalcularModalVenta() {
-  const p = (db.productos || []).find(x => x.id === ventaPendienteId);
-  if (!p) return;
+      const p = (db.productos || []).find(x => x.id === ventaPendienteId);
+      if (!p) return;
 
-  const cantidad = Number(document.getElementById('modal-venta-cantidad')?.value) || 0;
-  const tipo = document.getElementById('modal-venta-tipo')?.value || 'venta_normal';
-  const descuentoValor = Number(document.getElementById('modal-venta-descuento')?.value) || 0;
+      const cantidad = Number(document.getElementById('modal-venta-cantidad')?.value) || 0;
+      const tipo = document.getElementById('modal-venta-tipo')?.value || 'venta_normal';
+      const descuentoValor = Number(document.getElementById('modal-venta-descuento')?.value) || 0;
 
-  const base = Number(p.venta) || 0;
-  const costo = Number(p.costo) || 0;
+      const base = Number(p.venta) || 0;
+      const costo = Number(p.costo) || 0;
 
-  let descuentoUnit = 0;
-  let finalUnit = base;
-  let ingreso = 0;
-  let ganancia = 0;
+      let descuentoUnit = 0;
+      let finalUnit = base;
+      let ingreso = 0;
+      let ganancia = 0;
 
-  if (tipo === 'venta_normal') {
-    descuentoUnit = 0;
-    finalUnit = base;
-  } else if (tipo === 'descuento_porcentaje') {
-    descuentoUnit = base * (descuentoValor / 100);
-    finalUnit = Math.max(0, base - descuentoUnit);
-  } else if (tipo === 'descuento_valor') {
-    descuentoUnit = descuentoValor;
-    finalUnit = Math.max(0, base - descuentoUnit);
-  } else if (tipo === 'regalo' || tipo === 'premio') {
-    descuentoUnit = base;
-    finalUnit = 0;
-  }
+      if (tipo === 'venta_normal') {
+        descuentoUnit = 0;
+        finalUnit = base;
+      } else if (tipo === 'descuento_porcentaje') {
+        descuentoUnit = base * (descuentoValor / 100);
+        finalUnit = Math.max(0, base - descuentoUnit);
+      } else if (tipo === 'descuento_valor') {
+        descuentoUnit = descuentoValor;
+        finalUnit = Math.max(0, base - descuentoUnit);
+      } else if (tipo === 'regalo' || tipo === 'premio') {
+        descuentoUnit = base;
+        finalUnit = 0;
+      }
 
-  ingreso = finalUnit * cantidad;
-  ganancia = (finalUnit - costo) * cantidad;
+      ingreso = finalUnit * cantidad;
+      ganancia = (finalUnit - costo) * cantidad;
 
-  document.getElementById('modal-base-unit').textContent = formatMoney(base);
-  document.getElementById('modal-descuento-unit').textContent = formatMoney(descuentoUnit);
-  document.getElementById('modal-final-unit').textContent = formatMoney(finalUnit);
-  document.getElementById('modal-ingreso-total').textContent = formatMoney(ingreso);
-  document.getElementById('modal-ganancia-total').textContent = formatMoney(ganancia);
-}
+      document.getElementById('modal-base-unit').textContent = formatMoney(base);
+      document.getElementById('modal-descuento-unit').textContent = formatMoney(descuentoUnit);
+      document.getElementById('modal-final-unit').textContent = formatMoney(finalUnit);
+      document.getElementById('modal-ingreso-total').textContent = formatMoney(ingreso);
+      document.getElementById('modal-ganancia-total').textContent = formatMoney(ganancia);
+    }
 
     async function confirmarVentaModal() {
-  if (!esAdmin || !ventaPendienteId) return;
+      if (!esAdmin || !ventaPendienteId) return;
 
-  const p = (db.productos || []).find(x => x.id === ventaPendienteId);
-  if (!p) {
-    cerrarModalVenta();
-    return;
-  }
+      const p = (db.productos || []).find(x => x.id === ventaPendienteId);
+      if (!p) {
+        cerrarModalVenta();
+        return;
+      }
 
-  const cantidad = parseInt(document.getElementById('modal-venta-cantidad')?.value, 10);
-  const tipoSalida = document.getElementById('modal-venta-tipo')?.value || 'venta_normal';
-  const descuentoValor = Number(document.getElementById('modal-venta-descuento')?.value) || 0;
-  const nota = safeText(document.getElementById('modal-venta-nota')?.value || "").trim();
+      const cantidad = parseInt(document.getElementById('modal-venta-cantidad')?.value, 10);
+      const tipoSalida = document.getElementById('modal-venta-tipo')?.value || 'venta_normal';
+      const descuentoValor = Number(document.getElementById('modal-venta-descuento')?.value) || 0;
+      const nota = safeText(document.getElementById('modal-venta-nota')?.value || "").trim();
 
-  if (!cantidad || cantidad <= 0) {
-    mostrarAlerta("❌ Cantidad inválida", "error");
-    return;
-  }
+      if (!cantidad || cantidad <= 0) {
+        mostrarAlerta("❌ Cantidad inválida", "error");
+        return;
+      }
 
-  const stockActual = Number(p.stock) || 0;
-  if (cantidad > stockActual) {
-    mostrarAlerta("❌ No puedes sacar más de lo que hay en stock", "error");
-    return;
-  }
+      const stockActual = Number(p.stock) || 0;
+      if (cantidad > stockActual) {
+        mostrarAlerta("❌ No puedes sacar más de lo que hay en stock", "error");
+        return;
+      }
 
-  const base = Number(p.venta) || 0;
-  const costo = Number(p.costo) || 0;
+      const base = Number(p.venta) || 0;
+      const costo = Number(p.costo) || 0;
 
-  let descuentoAplicadoUnitario = 0;
-  let precioFinalUnitario = base;
+      let descuentoAplicadoUnitario = 0;
+      let precioFinalUnitario = base;
 
-  if (tipoSalida === 'venta_normal') {
-    descuentoAplicadoUnitario = 0;
-    precioFinalUnitario = base;
-  } else if (tipoSalida === 'descuento_porcentaje') {
-    descuentoAplicadoUnitario = base * (descuentoValor / 100);
-    precioFinalUnitario = Math.max(0, base - descuentoAplicadoUnitario);
-  } else if (tipoSalida === 'descuento_valor') {
-    descuentoAplicadoUnitario = descuentoValor;
-    precioFinalUnitario = Math.max(0, base - descuentoAplicadoUnitario);
-  } else if (tipoSalida === 'regalo' || tipoSalida === 'premio') {
-    descuentoAplicadoUnitario = base;
-    precioFinalUnitario = 0;
-  }
+      if (tipoSalida === 'venta_normal') {
+        descuentoAplicadoUnitario = 0;
+        precioFinalUnitario = base;
+      } else if (tipoSalida === 'descuento_porcentaje') {
+        descuentoAplicadoUnitario = base * (descuentoValor / 100);
+        precioFinalUnitario = Math.max(0, base - descuentoAplicadoUnitario);
+      } else if (tipoSalida === 'descuento_valor') {
+        descuentoAplicadoUnitario = descuentoValor;
+        precioFinalUnitario = Math.max(0, base - descuentoAplicadoUnitario);
+      } else if (tipoSalida === 'regalo' || tipoSalida === 'premio') {
+        descuentoAplicadoUnitario = base;
+        precioFinalUnitario = 0;
+      }
 
-  const ingreso = precioFinalUnitario * cantidad;
-  const ganancia = (precioFinalUnitario - costo) * cantidad;
+      const ingreso = precioFinalUnitario * cantidad;
+      const ganancia = (precioFinalUnitario - costo) * cantidad;
 
-  p.stock = stockActual - cantidad;
-  p.ventasAcumuladas = (Number(p.ventasAcumuladas) || 0) + cantidad;
-  p.ultimaActualizacion = fechaLocalISO();
+      p.stock = stockActual - cantidad;
+      p.ventasAcumuladas = (Number(p.ventasAcumuladas) || 0) + cantidad;
+      p.ultimaActualizacion = fechaLocalISO();
 
-  if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-  db.ventasHistorial.unshift({
-    id: Date.now(),
-    productoId: p.id,
-    referencia: p.ref,
-    nombre: p.nombre,
-    categoria: p.categoria || "General",
-    cantidad,
-    tipoSalida,
-    descuentoValor,
-    descuentoAplicadoUnitario,
-    precioBaseUnitario: base,
-    precioFinalUnitario,
-    costoUnitario: costo,
-    ingreso,
-    ganancia,
-    nota,
-    fecha: fechaLocalISO()
-  });
+      if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+      db.ventasHistorial.unshift({
+        id: Date.now(),
+        productoId: p.id,
+        referencia: p.ref,
+        nombre: p.nombre,
+        categoria: p.categoria || "General",
+        cantidad,
+        tipoSalida,
+        descuentoValor,
+        descuentoAplicadoUnitario,
+        precioBaseUnitario: base,
+        precioFinalUnitario,
+        costoUnitario: costo,
+        ingreso,
+        ganancia,
+        nota,
+        fecha: fechaLocalISO()
+      });
 
-  saveLocal();
-  render();
-  actualizarDashboardAdmin();
-  renderHistorialVentas();
-  cerrarModalVenta();
-  await guardarNube();
-  mostrarAlerta("✅ Salida registrada");
-}
+      saveLocal();
+      render();
+      actualizarDashboardAdmin();
+      renderHistorialVentas();
+      cerrarModalVenta();
+      await guardarNube();
+      mostrarAlerta("✅ Salida registrada");
+    }
+
     function abrirModalAnularVenta(id) {
       if (!esAdmin) return;
       const venta = (db.ventasHistorial || []).find(v => v.id === id);
@@ -2405,65 +2416,66 @@ tbody.innerHTML += `
     }
 
     function exportarVentasAExcel() {
-  const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
-  if (!ventas.length) return alert("No hay salidas registradas");
+      const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
+      if (!ventas.length) return alert("No hay salidas registradas");
 
-  const desdeVal = document.getElementById('ventas-fecha-desde')?.value || "";
-  const hastaVal = document.getElementById('ventas-fecha-hasta')?.value || "";
-  const busquedaVal = normalizeText(document.getElementById('ventas-busqueda')?.value || "");
+      const desdeVal = document.getElementById('ventas-fecha-desde')?.value || "";
+      const hastaVal = document.getElementById('ventas-fecha-hasta')?.value || "";
+      const busquedaVal = normalizeText(document.getElementById('ventas-busqueda')?.value || "");
 
-  let desde = null;
-  let hasta = null;
+      let desde = null;
+      let hasta = null;
 
-  if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
-  if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
+      if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
+      if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
 
-  const filtradas = ventas.filter(v => {
-    const fecha = new Date(v.fecha);
-    if (isNaN(fecha)) return false;
-    if (desde && fecha < desde) return false;
-    if (hasta && fecha > hasta) return false;
+      const filtradas = ventas.filter(v => {
+        const fecha = new Date(v.fecha);
+        if (isNaN(fecha)) return false;
+        if (desde && fecha < desde) return false;
+        if (hasta && fecha > hasta) return false;
 
-    if (busquedaVal) {
-      const texto = normalizeText([v.referencia, v.nombre, v.categoria, v.tipoSalida, v.nota].join(" "));
-      if (!texto.includes(busquedaVal)) return false;
+        if (busquedaVal) {
+          const texto = normalizeText([v.referencia, v.nombre, v.categoria, v.tipoSalida, v.nota].join(" "));
+          if (!texto.includes(busquedaVal)) return false;
+        }
+        return true;
+      });
+
+      if (!filtradas.length) return alert("No hay salidas para exportar con ese filtro");
+
+      const nombreTipoSalida = (tipo) => {
+        if (tipo === "venta_normal") return "Venta";
+        if (tipo === "descuento_porcentaje") return "Descuento %";
+        if (tipo === "descuento_valor") return "Descuento RD$";
+        if (tipo === "regalo") return "Regalo";
+        if (tipo === "premio") return "Premio";
+        return "Venta";
+      };
+
+      const data = filtradas.map(v => ({
+        Fecha: fechaBonita(v.fecha),
+        TipoSalida: nombreTipoSalida(v.tipoSalida),
+        Referencia: v.referencia,
+        Producto: v.nombre,
+        Categoria: v.categoria || "General",
+        Cantidad: v.cantidad,
+        PrecioBaseUnitario: v.precioBaseUnitario ?? v.precioUnitario ?? 0,
+        DescuentoValor: v.descuentoValor || 0,
+        DescuentoAplicadoUnitario: v.descuentoAplicadoUnitario || 0,
+        PrecioFinalUnitario: v.precioFinalUnitario ?? v.precioUnitario ?? 0,
+        CostoUnitario: v.costoUnitario || 0,
+        Ingreso: v.ingreso || 0,
+        Ganancia: v.ganancia || 0,
+        Nota: v.nota || ""
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Salidas");
+      XLSX.writeFile(wb, "H-Essence_Salidas.xlsx");
     }
-    return true;
-  });
 
-  if (!filtradas.length) return alert("No hay salidas para exportar con ese filtro");
-
-  const nombreTipoSalida = (tipo) => {
-    if (tipo === "venta_normal") return "Venta";
-    if (tipo === "descuento_porcentaje") return "Descuento %";
-    if (tipo === "descuento_valor") return "Descuento RD$";
-    if (tipo === "regalo") return "Regalo";
-    if (tipo === "premio") return "Premio";
-    return "Venta";
-  };
-
-  const data = filtradas.map(v => ({
-    Fecha: fechaBonita(v.fecha),
-    TipoSalida: nombreTipoSalida(v.tipoSalida),
-    Referencia: v.referencia,
-    Producto: v.nombre,
-    Categoria: v.categoria || "General",
-    Cantidad: v.cantidad,
-    PrecioBaseUnitario: v.precioBaseUnitario ?? v.precioUnitario ?? 0,
-    DescuentoValor: v.descuentoValor || 0,
-    DescuentoAplicadoUnitario: v.descuentoAplicadoUnitario || 0,
-    PrecioFinalUnitario: v.precioFinalUnitario ?? v.precioUnitario ?? 0,
-    CostoUnitario: v.costoUnitario || 0,
-    Ingreso: v.ingreso || 0,
-    Ganancia: v.ganancia || 0,
-    Nota: v.nota || ""
-  }));
-
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Salidas");
-  XLSX.writeFile(wb, "H-Essence_Salidas.xlsx");
-}
     function partirTextoEnLineas(ctx, texto, maxWidth) {
       const palabras = String(texto || "").split(" ");
       const lineas = [];
@@ -2695,6 +2707,8 @@ tbody.innerHTML += `
       const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
       const tabla = document.getElementById('tabla-body');
       const catalogo = document.getElementById('catalogo-container');
+      const btnCart = document.getElementById('btn-cart');
+      const panelCart = document.getElementById('cart-panel');
 
       if (tabla) tabla.innerHTML = "";
       if (catalogo) catalogo.innerHTML = "";
@@ -2791,9 +2805,9 @@ tbody.innerHTML += `
         }
       });
 
-      document.getElementById('btn-cart').style.display = db.cartEnabled ? "block" : "none";
-      if (!db.cartEnabled) {
-        document.getElementById('cart-panel').style.display = "none";
+      if (btnCart) btnCart.style.display = db.cartEnabled ? "block" : "none";
+      if (!db.cartEnabled && panelCart) {
+        panelCart.style.display = "none";
       }
 
       actualizarBadgeCart();
@@ -2891,12 +2905,14 @@ tbody.innerHTML += `
 
     function abrirCarrito() {
       const panel = document.getElementById('cart-panel');
+      if (!panel) return;
       panel.style.display = 'block';
       renderCarrito();
     }
 
     function cerrarCarrito() {
       const panel = document.getElementById('cart-panel');
+      if (!panel) return;
       panel.style.display = 'none';
     }
 
@@ -3007,15 +3023,79 @@ tbody.innerHTML += `
       }, false);
     }
 
-    document.getElementById('btn-compartir-catalogo').addEventListener('click', shareCatalog);
-    document.getElementById('btn-cart').addEventListener('click', () => {
+    async function guardarTodo() {
+      if (!esAdmin) {
+        mostrarAlerta("❌ Solo el administrador puede guardar", "error");
+        return;
+      }
+
+      try {
+        const inputNombre = document.getElementById('input-shop-name');
+        const inputSlogan = document.getElementById('input-shop-slogan');
+        const ruletaCheck = document.getElementById('ruleta-visible-check');
+        const wheelText = document.getElementById('wheel-text-color');
+        const wheelArrow = document.getElementById('wheel-arrow-color');
+        const chkSound = document.getElementById('ctrl-wheel-sound');
+        const chkCart = document.getElementById('ctrl-cart-enabled');
+        const sLogo = document.getElementById('ctrl-logo-size');
+        const sGap = document.getElementById('ctrl-header-gap');
+        const sT = document.getElementById('ctrl-title-gap');
+        const sS = document.getElementById('ctrl-slogan-gap');
+
+        db.nombreTienda = safeText(inputNombre?.value || "H-ESSENCE");
+        db.slogan = safeText(inputSlogan?.value || "Luxury Perfumery RD");
+        db.ruletaVisible = !!ruletaCheck?.checked;
+        db.colorTextoRuleta = wheelText?.value || "#FFFFFF";
+        db.colorFlecha = wheelArrow?.value || "#1A1A1A";
+        db.wheelSound = !!chkSound?.checked;
+        db.cartEnabled = !!chkCart?.checked;
+        db.logoSize = parseInt(sLogo?.value, 10) || 240;
+        db.headerGap = parseInt(sGap?.value, 10) || 12;
+        db.titleGap = parseInt(sT?.value, 10) || 0;
+        db.sloganGap = parseInt(sS?.value, 10) || 0;
+
+        db.premios = [];
+        db.tipos = [];
+
+        for (let i = 1; i <= 6; i++) {
+          const premio = document.getElementById(`p${i}`)?.value?.trim() || `Premio ${i}`;
+          const tipo = document.getElementById(`t${i}`)?.value || "lose";
+          db.premios.push(premio);
+          db.tipos.push(tipo);
+        }
+
+        saveLocal();
+        actualizarUIHeader();
+        dibujarRuleta();
+        render();
+        actualizarDashboardAdmin();
+        renderHistorialVentas();
+
+        await guardarNube();
+        mostrarAlerta("✅ Configuración guardada correctamente");
+      } catch (e) {
+        console.error(e);
+        mostrarAlerta("❌ Error al guardar la configuración", "error");
+        fatal(e);
+      }
+    }
+
+    const btnCompartir = document.getElementById('btn-compartir-catalogo');
+    const btnCart = document.getElementById('btn-cart');
+    const btnCloseCart = document.getElementById('btn-close-cart');
+    const btnVaciar = document.getElementById('btn-vaciar');
+    const btnEnviarPedido = document.getElementById('btn-enviar-pedido');
+
+    if (btnCompartir) btnCompartir.addEventListener('click', shareCatalog);
+    if (btnCart) btnCart.addEventListener('click', () => {
       const panel = document.getElementById('cart-panel');
+      if (!panel) return;
       panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
       renderCarrito();
     });
-    document.getElementById('btn-close-cart').addEventListener('click', cerrarCarrito);
-    document.getElementById('btn-vaciar').addEventListener('click', () => { vaciarCarrito(); });
-    document.getElementById('btn-enviar-pedido').addEventListener('click', enviarPedidoWhatsApp);
+    if (btnCloseCart) btnCloseCart.addEventListener('click', cerrarCarrito);
+    if (btnVaciar) btnVaciar.addEventListener('click', () => { vaciarCarrito(); });
+    if (btnEnviarPedido) btnEnviarPedido.addEventListener('click', enviarPedidoWhatsApp);
 
     window.addEventListener('load', async () => {
       try {
