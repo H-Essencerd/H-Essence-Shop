@@ -1834,7 +1834,8 @@
     }
 
     function setModoAdmin(on) {
-  esAdmin = !!on;
+  const user = firebase.auth().currentUser;
+esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
 
   const panel = document.getElementById('panel-admin');
   const toggle = document.getElementById('toggle-view');
@@ -3072,6 +3073,10 @@ function escucharAuth() {
     }
 
     async function guardarTodo() {
+      if (!esAdmin) {
+  mostrarAlerta("❌ No autorizado", "error");
+  return;
+}
       if (!esAdmin) {
         mostrarAlerta("❌ Solo el administrador puede guardar", "error");
         return;
