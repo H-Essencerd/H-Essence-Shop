@@ -1153,6 +1153,16 @@
           <button class="btn-mini btn-excel" onclick="exportarVentasAExcel()">🧾 Exportar salidas</button>
         </div>
       </div>
+      <div class="calculator-grid" style="margin-top:10px;">
+  <div style="grid-column: 1 / -1;">
+    <label class="small-label">🔎 Buscar producto en inventario</label>
+    <input
+      type="text"
+      id="admin-search-input"
+      placeholder="Busca por nombre, referencia, categoría o tamaño..."
+      oninput="render()">
+  </div>
+</div>
 
       <div class="table-container">
         <table>
@@ -2752,7 +2762,8 @@ function escucharAuth() {
     }
 
     function render() {
-      const query = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
+      const queryCliente = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
+const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
       const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
       const tabla = document.getElementById('tabla-body');
       const catalogo = document.getElementById('catalogo-container');
@@ -2770,6 +2781,15 @@ function escucharAuth() {
       const productos = Array.isArray(db.productos) ? db.productos : [];
 
       productos.forEach(p => {
+        const textoAdmin = [
+  safeText(p.ref),
+  safeText(p.nombre),
+  safeText(p.categoria || "General"),
+  safeText(p.onzas)
+].join(" ").toLowerCase();
+
+const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
+        
         const ganancia = (p.venta || 0) - (p.costo || 0);
         const margen = calcularMargenPorcentaje(p.venta, p.costo);
         const estadoInv = obtenerEstadoInventario(p);
@@ -2783,41 +2803,41 @@ function escucharAuth() {
           ? '<span class="badge-dispo bg-inmediata">Inmediata</span>'
           : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
 
-        if (tabla) {
-          tabla.innerHTML += `<tr>
-            <td>${safeText(p.ref)}</td>
-            <td>${safeText(p.nombre)}</td>
-            <td>${safeText(p.categoria || "General")}</td>
-            <td>${safeText(p.onzas)}</td>
-            <td>${badgeStockTable}</td>
-            <td><b>${stock}</b></td>
-            <td>${p.stockMinimo || 0}</td>
-            <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
-            <td>${p.ventasAcumuladas || 0}</td>
-            <td>${formatMoney(costo)}</td>
-            <td>${formatMoney(venta)}</td>
-            <td style="color:green">${formatMoney(ganancia)}</td>
-            <td>${margen.toFixed(2)}%</td>
-            <td>${formatMoney(inversionTotal)}</td>
-            <td>${formatMoney(valorTotal)}</td>
-            <td>${formatMoney(ganPot)}</td>
-            <td>${fechaBonita(p.ultimaActualizacion)}</td>
-            <td>
-              ${esAdmin ? `
-                <button onclick="editar(${p.id})">✏️</button>
-                <button onclick="abrirModalVenta(${p.id})">📦</button>
-                <button onclick="borrar(${p.id})">🗑️</button>
-              ` : `<span style="opacity:.5">—</span>`}
-            </td>
-          </tr>`;
-        }
+        if (tabla && coincideAdmin) {
+  tabla.innerHTML += `<tr>
+    <td>${safeText(p.ref)}</td>
+    <td>${safeText(p.nombre)}</td>
+    <td>${safeText(p.categoria || "General")}</td>
+    <td>${safeText(p.onzas)}</td>
+    <td>${badgeStockTable}</td>
+    <td><b>${stock}</b></td>
+    <td>${p.stockMinimo || 0}</td>
+    <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
+    <td>${p.ventasAcumuladas || 0}</td>
+    <td>${formatMoney(costo)}</td>
+    <td>${formatMoney(venta)}</td>
+    <td style="color:green">${formatMoney(ganancia)}</td>
+    <td>${margen.toFixed(2)}%</td>
+    <td>${formatMoney(inversionTotal)}</td>
+    <td>${formatMoney(valorTotal)}</td>
+    <td>${formatMoney(ganPot)}</td>
+    <td>${fechaBonita(p.ultimaActualizacion)}</td>
+    <td>
+      ${esAdmin ? `
+        <button onclick="editar(${p.id})">✏️</button>
+        <button onclick="abrirModalVenta(${p.id})">📦</button>
+        <button onclick="borrar(${p.id})">🗑️</button>
+      ` : `<span style="opacity:.5">—</span>`}
+    </td>
+  </tr>`;
+}
 
         if (!catalogo) return;
 
         const ref = safeText(p.ref).toLowerCase();
         const nom = safeText(p.nombre).toLowerCase();
         const cat = safeText(p.categoria || "General");
-        const coincideBusqueda = nom.includes(query) || ref.includes(query) || cat.toLowerCase().includes(query);
+        const coincideBusqueda = !queryCliente || nom.includes(queryCliente) || ref.includes(queryCliente) || cat.toLowerCase().includes(queryCliente);
         const coincideCategoria = !categoriaActiva || cat === categoriaActiva;
 
         if (coincideBusqueda && coincideCategoria) {
