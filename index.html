@@ -875,6 +875,13 @@
 
   <img id="bg-logo" src="" alt="">
   <button id="toggle-view" onclick="cambiarVista()">👁️ Vista: Administrador</button>
+  <button id="btn-login-admin" type="button" style="position:fixed; top:20px; right:20px; z-index:9999; background:var(--negro); color:var(--dorado); border:2px solid var(--dorado); padding:10px 16px; border-radius:999px; font-weight:900; cursor:pointer;">
+  🔐 Login Admin
+</button>
+
+<button id="btn-logout-admin" type="button" style="position:fixed; top:20px; right:20px; z-index:9999; background:var(--rojo-lose); color:white; border:2px solid white; padding:10px 16px; border-radius:999px; font-weight:900; cursor:pointer; display:none;">
+  🚪 Logout
+</button>
 
   <button id="btn-compartir-catalogo" type="button">✨ Compartir Catálogo</button>
 
@@ -1827,21 +1834,31 @@
     }
 
     function setModoAdmin(on) {
-      esAdmin = !!on;
-      const panel = document.getElementById('panel-admin');
-      const toggle = document.getElementById('toggle-view');
+  esAdmin = !!on;
 
-      if (panel) panel.classList.toggle('hidden', !esAdmin);
-      if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
-      if (toggle) toggle.innerText = "👁️ Vista: Administrador";
+  const panel = document.getElementById('panel-admin');
+  const toggle = document.getElementById('toggle-view');
 
-      if (!esAdmin && panel) panel.classList.add('hidden');
+  if (panel) {
+    panel.classList.toggle('hidden', !esAdmin);
+  }
 
-      render();
-      dibujarRuleta();
-      actualizarDashboardAdmin();
-      renderHistorialVentas();
-    }
+  if (toggle) {
+    toggle.style.display = esAdmin ? 'block' : 'none';
+    toggle.innerText = "👁️ Vista: Administrador";
+  }
+
+  if (!esAdmin && panel) {
+    panel.classList.add('hidden');
+  }
+
+  actualizarBotonesAuth();
+
+  render();
+  dibujarRuleta();
+  actualizarDashboardAdmin();
+  renderHistorialVentas();
+}
 
     function cambiarVista() {
       if (!esAdmin) return;
@@ -1852,22 +1869,53 @@
       if (toggle) toggle.innerText = oculto ? "👁️ Vista: Administrador" : "👁️ Vista: Cliente";
     }
 
-    async function intentarLoginAdminSiAplica() {
-      if (location.hash !== "#admin") return;
-      const pass = prompt("Contraseña admin:");
-      if (!pass) return;
+    async function loginAdmin() {
+  const pass = prompt("Contraseña admin:");
+  if (!pass) return;
 
-      try {
-        await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
-        setModoAdmin(true);
-        cargarInputsAdmin();
-        mostrarAlerta("✅ Modo administrador activado");
-      } catch (e) {
-        console.error(e);
-        mostrarAlerta("❌ Login falló", "error");
-        setModoAdmin(false);
-      }
+  try {
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    await firebase.auth().signInWithEmailAndPassword(ADMIN_EMAIL, pass);
+    mostrarAlerta("✅ Login correcto");
+  } catch (e) {
+    console.error(e);
+    mostrarAlerta("❌ Login falló", "error");
+  }
+}
+
+async function logoutAdmin() {
+  try {
+    await firebase.auth().signOut();
+    mostrarAlerta("✅ Sesión cerrada");
+  } catch (e) {
+    console.error(e);
+    mostrarAlerta("❌ No se pudo cerrar sesión", "error");
+  }
+}
+
+function actualizarBotonesAuth() {
+  const btnLogin = document.getElementById('btn-login-admin');
+  const btnLogout = document.getElementById('btn-logout-admin');
+  const toggle = document.getElementById('toggle-view');
+
+  if (btnLogin) btnLogin.style.display = esAdmin ? 'none' : 'block';
+  if (btnLogout) btnLogout.style.display = esAdmin ? 'block' : 'none';
+  if (toggle) toggle.style.display = esAdmin ? 'block' : 'none';
+}
+
+function escucharAuth() {
+  firebase.auth().onAuthStateChanged((user) => {
+    const adminActivo = !!user && user.email === ADMIN_EMAIL;
+
+    setModoAdmin(adminActivo);
+
+    if (adminActivo) {
+      cargarInputsAdmin();
     }
+
+    actualizarBotonesAuth();
+  });
+}
 
     firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
@@ -3098,38 +3146,40 @@
     if (btnEnviarPedido) btnEnviarPedido.addEventListener('click', enviarPedidoWhatsApp);
 
     window.addEventListener('load', async () => {
-      try {
-        if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-        if (!Array.isArray(db.productos)) db.productos = [];
+  try {
+    if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+    if (!Array.isArray(db.productos)) db.productos = [];
 
-        setModoAdmin(false);
-        actualizarUIHeader();
-        dibujarRuleta();
-        render();
-        updateLivePreview();
-        activarDragDrop();
-        activarSlidersHeader();
-        actualizarCalculadoraPrecio();
-        escucharNube();
-        await intentarLoginAdminSiAplica();
+    actualizarUIHeader();
+    dibujarRuleta();
+    render();
+    updateLivePreview();
+    activarDragDrop();
+    activarSlidersHeader();
+    actualizarCalculadoraPrecio();
+    escucharNube();
+    escucharAuth();
 
-        if (esAdmin) {
-          cargarInputsAdmin();
-          activarSlidersHeader();
-        }
+    const btnLogin = document.getElementById('btn-login-admin');
+    const btnLogout = document.getElementById('btn-logout-admin');
 
-        actualizarBadgeCart();
-        aplicarVistaCatalogo();
-        actualizarLogoCentroRuleta();
-        actualizarDashboardAdmin();
-        renderHistorialVentas();
-      } catch (e) {
-        fatal(e);
-      }
-    });
+    if (btnLogin) btnLogin.addEventListener('click', loginAdmin);
+    if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
 
+    actualizarBadgeCart();
+    aplicarVistaCatalogo();
+    actualizarLogoCentroRuleta();
+    actualizarDashboardAdmin();
+    renderHistorialVentas();
+    actualizarBotonesAuth();
+  } catch (e) {
+    fatal(e);
+  }
+});
     window.cambiarVista = cambiarVista;
     window.guardarTodo = guardarTodo;
+    window.loginAdmin = loginAdmin;
+    window.logoutAdmin = logoutAdmin;
     window.procesarProducto = procesarProducto;
     window.editar = editar;
     window.borrar = borrar;
