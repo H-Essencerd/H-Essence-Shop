@@ -969,6 +969,22 @@
           <small>Ganancia neta real</small>
           <strong id="stat-ganancia-neta">RD$ 0</strong>
         </div>
+        <div class="stat-card">
+  <small>Visitas hoy</small>
+  <strong id="stat-visitas-hoy">0</strong>
+</div>
+<div class="stat-card">
+  <small>Visitas totales</small>
+  <strong id="stat-visitas-total">0</strong>
+</div>
+<div class="stat-card">
+  <small>Clics en WhatsApp</small>
+  <strong id="stat-clicks-whatsapp">0</strong>
+</div>
+<div class="stat-card">
+  <small>Agregados al carrito</small>
+  <strong id="stat-agregados-carrito">0</strong>
+</div>
       </div>
 
       <div style="margin-top:18px;">
@@ -1535,33 +1551,36 @@
     let renderTimerCliente = null;
 
     const defaultDB = {
-      productos: [],
-      ventasHistorial: [],
-      gastos: [],
-      nombreTienda: "H-ESSENCE",
-      slogan: "Luxury Perfumery RD",
-      logo: "",
-      ruletaVisible: false,
-      premios: [
-        "PREMIO 1",
-        "INTENTA OTRA VEZ",
-        "PREMIO VIP",
-        "CASI",
-        "DESCUENTO",
-        "REGALO"
-      ],
-      tipos: ["win", "lose", "win", "lose", "win", "lose"],
-      colorTextoRuleta: "#FFFFFF",
-      colorFlecha: "#1A1A1A",
-      logoSize: 240,
-      headerGap: 12,
-      titleGap: 0,
-      sloganGap: 0,
-      wheelSound: true,
-      cartEnabled: true,
-      _updatedAt: 0
-    };
-
+  productos: [],
+  ventasHistorial: [],
+  gastos: [],
+  nombreTienda: "H-ESSENCE",
+  slogan: "Luxury Perfumery RD",
+  logo: "",
+  ruletaVisible: false,
+  premios: [
+    "PREMIO 1",
+    "INTENTA OTRA VEZ",
+    "PREMIO VIP",
+    "CASI",
+    "DESCUENTO",
+    "REGALO"
+  ],
+  tipos: ["win", "lose", "win", "lose", "win", "lose"],
+  colorTextoRuleta: "#FFFFFF",
+  colorFlecha: "#1A1A1A",
+  logoSize: 240,
+  headerGap: 12,
+  titleGap: 0,
+  sloganGap: 0,
+  wheelSound: true,
+  cartEnabled: true,
+  visitasTotales: 0,
+  visitasHoy: {},
+  clicksWhatsApp: 0,
+  agregadosCarrito: 0,
+  _updatedAt: 0
+};
     let db = loadLocal() || structuredClone(defaultDB);
 
     function loadLocal() {
@@ -1631,7 +1650,116 @@
     function fechaSoloISO() {
       return fechaLocalISO().slice(0, 10);
     }
+    function getFechaKey() {
+  return fechaSoloISO();
+}
 
+function getUltimaReferenciaNumerica() {
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+  let maxRef = 10000;
+
+  productos.forEach(p => {
+    const soloNumeros = String(p.ref || "").replace(/\D/g, "");
+    const num = parseInt(soloNumeros, 10);
+    if (!isNaN(num) && num > maxRef) {
+      maxRef = num;
+    }
+  });
+
+  return maxRef;
+}
+
+function generarSiguienteReferencia() {
+  return String(getUltimaReferenciaNumerica() + 1);
+}
+
+function autocompletarReferenciaSiVacia() {
+  const refInput = document.getElementById('referencia');
+  const editInput = document.getElementById('edit-id');
+  if (!refInput || !editInput) return;
+
+  const estaEditando = !!safeText(editInput.value).trim();
+  if (estaEditando) return;
+
+  if (!safeText(refInput.value).trim()) {
+    refInput.value = generarSiguienteReferencia();
+  }
+}
+
+function actualizarColorIndicadorTrafico(id, valor) {
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  if (Number(valor) > 1) {
+    el.style.color = 'var(--ganancia)';
+  } else {
+    el.style.color = 'var(--negro)';
+  }
+}
+
+function actualizarResumenTrafico() {
+  const hoyKey = getFechaKey();
+  const visitasHoy = Number(db.visitasHoy?.[hoyKey] || 0);
+  const visitasTotales = Number(db.visitasTotales || 0);
+  const clicksWhatsApp = Number(db.clicksWhatsApp || 0);
+  const agregadosCarrito = Number(db.agregadosCarrito || 0);
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  set('stat-visitas-hoy', visitasHoy);
+  set('stat-visitas-total', visitasTotales);
+  set('stat-clicks-whatsapp', clicksWhatsApp);
+  set('stat-agregados-carrito', agregadosCarrito);
+
+  actualizarColorIndicadorTrafico('stat-visitas-hoy', visitasHoy);
+  actualizarColorIndicadorTrafico('stat-visitas-total', visitasTotales);
+  actualizarColorIndicadorTrafico('stat-clicks-whatsapp', clicksWhatsApp);
+  actualizarColorIndicadorTrafico('stat-agregados-carrito', agregadosCarrito);
+}
+
+function registrarVisitaUnicaSesion() {
+  const keyHoy = getFechaKey();
+  const sessionKey = `h_visita_${keyHoy}`;
+
+  if (sessionStorage.getItem(sessionKey)) return;
+  sessionStorage.setItem(sessionKey, "1");
+
+  if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+
+  db.visitasTotales = (Number(db.visitasTotales) || 0) + 1;
+  db.visitasHoy[keyHoy] = (Number(db.visitasHoy[keyHoy]) || 0) + 1;
+  db._updatedAt = Date.now();
+
+  saveLocal();
+  actualizarResumenTrafico();
+
+  rdb.ref(PATH_DB).child("visitasTotales").transaction(current => (Number(current) || 0) + 1);
+  rdb.ref(PATH_DB).child("visitasHoy").child(keyHoy).transaction(current => (Number(current) || 0) + 1);
+}
+
+function registrarClickWhatsApp() {
+  db.clicksWhatsApp = (Number(db.clicksWhatsApp) || 0) + 1;
+  db._updatedAt = Date.now();
+
+  saveLocal();
+  actualizarResumenTrafico();
+
+  rdb.ref(PATH_DB).child("clicksWhatsApp").transaction(current => (Number(current) || 0) + 1);
+}
+
+function registrarAgregadoCarrito() {
+  db.agregadosCarrito = (Number(db.agregadosCarrito) || 0) + 1;
+  db._updatedAt = Date.now();
+
+  saveLocal();
+  actualizarResumenTrafico();
+
+  rdb.ref(PATH_DB).child("agregadosCarrito").transaction(current => (Number(current) || 0) + 1);
+}
+    
     function fechaBonita(iso) {
       if (!iso) return "—";
       const d = new Date(iso);
@@ -2115,33 +2243,34 @@
     }
 
     function setModoAdmin(on) {
-      const user = firebase.auth().currentUser;
-      esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
+  const user = firebase.auth().currentUser;
+  esAdmin = !!user && user.email === ADMIN_EMAIL && !!on;
 
-      const panel = document.getElementById('panel-admin');
-      const toggle = document.getElementById('toggle-view');
+  const panel = document.getElementById('panel-admin');
+  const toggle = document.getElementById('toggle-view');
 
-      if (panel) {
-        panel.classList.toggle('hidden', !esAdmin);
-      }
+  if (panel) {
+    panel.classList.toggle('hidden', !esAdmin);
+  }
 
-      if (toggle) {
-        toggle.style.display = esAdmin ? 'block' : 'none';
-        toggle.innerText = "👁️ Vista: Administrador";
-      }
+  if (toggle) {
+    toggle.style.display = esAdmin ? 'block' : 'none';
+    toggle.innerText = "👁️ Vista: Administrador";
+  }
 
-      if (!esAdmin && panel) {
-        panel.classList.add('hidden');
-      }
+  if (!esAdmin && panel) {
+    panel.classList.add('hidden');
+  }
 
-      actualizarBotonesAuth();
+  actualizarBotonesAuth();
 
-      render();
-      dibujarRuleta();
-      actualizarDashboardAdmin();
-      renderHistorialVentas();
-      renderGastos();
-    }
+  render();
+  dibujarRuleta();
+  actualizarDashboardAdmin();
+  renderHistorialVentas();
+  renderGastos();
+  actualizarResumenTrafico();
+}
 
     function cambiarVista() {
       if (!esAdmin) return;
@@ -2204,35 +2333,40 @@
     const rdb = firebase.database();
 
     function escucharNube() {
-      rdb.ref(PATH_DB).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (!data || typeof data !== 'object') return;
+  rdb.ref(PATH_DB).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data || typeof data !== 'object') return;
 
-        const localUpdated = Number(db?._updatedAt || 0);
-        const remoteUpdated = Number(data?._updatedAt || 0);
+    const localUpdated = Number(db?._updatedAt || 0);
+    const remoteUpdated = Number(data?._updatedAt || 0);
 
-        if (guardando && remoteUpdated < localUpdated) {
-          return;
-        }
-
-        db = { ...structuredClone(defaultDB), ...data };
-
-        if (!Array.isArray(db.productos)) db.productos = [];
-        if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-        if (!Array.isArray(db.gastos)) db.gastos = [];
-
-        saveLocal();
-        ultimoGuardadoHash = getDBHash();
-        cargarInputsAdmin();
-        actualizarUIHeader();
-        dibujarRuleta();
-        render();
-        actualizarDashboardAdmin();
-        renderHistorialVentas();
-        renderGastos();
-      });
+    if (guardando && remoteUpdated < localUpdated) {
+      return;
     }
 
+    db = { ...structuredClone(defaultDB), ...data };
+
+    if (!Array.isArray(db.productos)) db.productos = [];
+    if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+    if (!Array.isArray(db.gastos)) db.gastos = [];
+    if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+    db.visitasTotales = Number(db.visitasTotales || 0);
+    db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
+    db.agregadosCarrito = Number(db.agregadosCarrito || 0);
+
+    saveLocal();
+    ultimoGuardadoHash = getDBHash();
+    cargarInputsAdmin();
+    actualizarUIHeader();
+    dibujarRuleta();
+    render();
+    actualizarDashboardAdmin();
+    renderHistorialVentas();
+    renderGastos();
+    actualizarResumenTrafico();
+    autocompletarReferenciaSiVacia();
+  });
+}
     async function guardarNube(forzar = false) {
       if (!esAdmin) return false;
 
@@ -2463,27 +2597,29 @@
     }
 
     function resetForm() {
-      const ids = ['referencia','nombre','categoria','descripcion','onzas','venta','costo','stock-cantidad','stock-minimo'];
-      const edit = document.getElementById('edit-id');
-      if (edit) edit.value = "";
-      ids.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-          if (id === 'stock-cantidad') el.value = "1";
-          else if (id === 'stock-minimo') el.value = "1";
-          else el.value = "";
-        }
-      });
+  const ids = ['referencia','nombre','categoria','descripcion','onzas','venta','costo','stock-cantidad','stock-minimo'];
+  const edit = document.getElementById('edit-id');
+  if (edit) edit.value = "";
 
-      const dispo = document.getElementById('disponibilidad');
-      if (dispo) dispo.value = "inmediata";
-
-      quitarFoto();
-      document.getElementById('btn-add')?.classList.remove('hidden');
-      document.getElementById('btn-update')?.classList.add('hidden');
-      updateLivePreview();
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      if (id === 'stock-cantidad') el.value = "1";
+      else if (id === 'stock-minimo') el.value = "1";
+      else el.value = "";
     }
+  });
 
+  const dispo = document.getElementById('disponibilidad');
+  if (dispo) dispo.value = "inmediata";
+
+  quitarFoto();
+  document.getElementById('btn-add')?.classList.remove('hidden');
+  document.getElementById('btn-update')?.classList.add('hidden');
+
+  autocompletarReferenciaSiVacia();
+  updateLivePreview();
+}
     async function procesarProducto() {
       if (!esAdmin) return;
 
@@ -2497,7 +2633,7 @@
 
       const p = {
         id: id ? parseInt(id) : Date.now() + Math.floor(Math.random() * 10000),
-        ref: safeText(document.getElementById('referencia')?.value || "S/R"),
+        ref: safeText(document.getElementById('referencia')?.value || generarSiguienteReferencia()),
         nombre: safeText(document.getElementById('nombre')?.value || ""),
         categoria: safeText(document.getElementById('categoria')?.value || "General"),
         descripcion: safeText(document.getElementById('descripcion')?.value || ""),
@@ -3262,10 +3398,10 @@
                 ${p.descripcion ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${safeText(p.descripcion)}</p>` : ""}
                 <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
 
-                <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank"
-                  style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold; width:100%;">
-                  WhatsApp
-                </a>
+                <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()"
+  style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold; width:100%;">
+  WhatsApp
+</a>
 
                 ${db.cartEnabled ? `<button class="btn-add-cart" type="button" onclick="addToCart(${p.id})">➕ Agregar al carrito</button>` : ``}
                 <button class="btn-share-product" type="button" onclick="shareProduct('${waShare}', '${safeText(p.nombre).replace(/'/g,"\\'")}')">🔗 Compartir este producto</button>
@@ -3337,13 +3473,15 @@
     }
 
     function addToCart(productId) {
-      if (!db.cartEnabled) return;
-      const existing = cart.find(x => x.id === productId);
-      if (existing) existing.qty += 1;
-      else cart.push({ id: productId, qty: 1 });
-      saveCart();
-      abrirCarrito();
-    }
+  if (!db.cartEnabled) return;
+  const existing = cart.find(x => x.id === productId);
+  if (existing) existing.qty += 1;
+  else cart.push({ id: productId, qty: 1 });
+
+  saveCart();
+  registrarAgregadoCarrito();
+  abrirCarrito();
+}
 
     function decCart(productId) {
       const it = cart.find(x => x.id === productId);
@@ -3571,69 +3709,75 @@
     if (btnEnviarPedido) btnEnviarPedido.addEventListener('click', enviarPedidoWhatsApp);
 
     window.addEventListener('load', async () => {
-      try {
-        if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-        if (!Array.isArray(db.productos)) db.productos = [];
-        if (!Array.isArray(db.gastos)) db.gastos = [];
+  try {
+    if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+    if (!Array.isArray(db.productos)) db.productos = [];
+    if (!Array.isArray(db.gastos)) db.gastos = [];
+    if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+    db.visitasTotales = Number(db.visitasTotales || 0);
+    db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
+    db.agregadosCarrito = Number(db.agregadosCarrito || 0);
 
-        actualizarUIHeader();
-        dibujarRuleta();
-        updateLivePreview();
-        activarDragDrop();
-        activarSlidersHeader();
-        actualizarCalculadoraPrecio();
-        escucharNube();
-        escucharAuth();
-        render();
+    actualizarUIHeader();
+    dibujarRuleta();
+    updateLivePreview();
+    activarDragDrop();
+    activarSlidersHeader();
+    actualizarCalculadoraPrecio();
+    escucharNube();
+    escucharAuth();
+    render();
+    autocompletarReferenciaSiVacia();
+    registrarVisitaUnicaSesion();
 
-        const btnLogout = document.getElementById('btn-logout-admin');
-        if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
+    const btnLogout = document.getElementById('btn-logout-admin');
+    if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
 
-        const logoHeader = document.getElementById('shop-logo-header');
-        const shopName = document.getElementById('shop-name-display');
+    const logoHeader = document.getElementById('shop-logo-header');
+    const shopName = document.getElementById('shop-name-display');
 
-        const gastoFecha = document.getElementById('gasto-fecha');
-        const gastoCategoria = document.getElementById('gasto-categoria');
-        if (gastoFecha && !gastoFecha.value) gastoFecha.value = fechaSoloISO();
-        if (gastoCategoria && !gastoCategoria.value) gastoCategoria.value = "Empaque";
+    const gastoFecha = document.getElementById('gasto-fecha');
+    const gastoCategoria = document.getElementById('gasto-categoria');
+    if (gastoFecha && !gastoFecha.value) gastoFecha.value = fechaSoloISO();
+    if (gastoCategoria && !gastoCategoria.value) gastoCategoria.value = "Empaque";
 
-        let adminClicks = 0;
-        let adminClickTimer = null;
+    let adminClicks = 0;
+    let adminClickTimer = null;
 
-        function adminClickHandler() {
-          adminClicks++;
+    function adminClickHandler() {
+      adminClicks++;
 
-          clearTimeout(adminClickTimer);
-          adminClickTimer = setTimeout(() => {
-            adminClicks = 0;
-          }, 1800);
+      clearTimeout(adminClickTimer);
+      adminClickTimer = setTimeout(() => {
+        adminClicks = 0;
+      }, 1800);
 
-          if (adminClicks >= 5) {
-            adminClicks = 0;
-            loginAdmin();
-          }
-        }
-
-        if (logoHeader) {
-          logoHeader.addEventListener('click', adminClickHandler);
-        }
-
-        if (shopName) {
-          shopName.addEventListener('click', adminClickHandler);
-        }
-
-        actualizarBadgeCart();
-        aplicarVistaCatalogo();
-        actualizarLogoCentroRuleta();
-        actualizarDashboardAdmin();
-        renderHistorialVentas();
-        renderGastos();
-        actualizarBotonesAuth();
-      } catch (e) {
-        fatal(e);
+      if (adminClicks >= 5) {
+        adminClicks = 0;
+        loginAdmin();
       }
-    });
+    }
 
+    if (logoHeader) {
+      logoHeader.addEventListener('click', adminClickHandler);
+    }
+
+    if (shopName) {
+      shopName.addEventListener('click', adminClickHandler);
+    }
+
+    actualizarBadgeCart();
+    aplicarVistaCatalogo();
+    actualizarLogoCentroRuleta();
+    actualizarDashboardAdmin();
+    renderHistorialVentas();
+    renderGastos();
+    actualizarResumenTrafico();
+    actualizarBotonesAuth();
+  } catch (e) {
+    fatal(e);
+  }
+});
     window.cambiarVista = cambiarVista;
     window.guardarTodo = guardarTodo;
     window.loginAdmin = loginAdmin;
@@ -3673,6 +3817,11 @@
     window.syncCostoEnCalculadora = syncCostoEnCalculadora;
     window.renderHistorialVentas = renderHistorialVentas;
     window.limpiarFiltrosVentas = limpiarFiltrosVentas;
+    window.autocompletarReferenciaSiVacia = autocompletarReferenciaSiVacia;
+    window.generarSiguienteReferencia = generarSiguienteReferencia;
+    window.registrarClickWhatsApp = registrarClickWhatsApp;
+    window.registrarAgregadoCarrito = registrarAgregadoCarrito;
+    window.actualizarResumenTrafico = actualizarResumenTrafico;
   </script>
 </body>
 </html>
