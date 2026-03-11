@@ -499,6 +499,19 @@
       left: 15px;
       z-index: 10;
     }
+    .badge-etiqueta {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  z-index: 10;
+  background: var(--dorado);
+  color: var(--negro);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
 
     .hidden { display: none !important; }
 
@@ -1178,6 +1191,17 @@
       <input type="number" id="costo" placeholder="Costo Compra RD$" oninput="syncCostoEnCalculadora()">
       <input type="number" id="stock-cantidad" placeholder="Cantidad en Stock" value="1">
       <input type="number" id="stock-minimo" placeholder="Stock mínimo" value="1">
+     <label style="display:block;margin-top:8px;font-weight:800;">
+Etiqueta del producto
+</label>
+
+<select id="etiqueta-producto" onchange="updateLivePreview()">
+<option value="">Ninguna</option>
+<option value="popular">🔥 Popular</option>
+<option value="recomendado">⭐ Recomendado</option>
+<option value="masvendido">🏆 Más vendido</option>
+<option value="exclusivo">💎 Exclusivo</option>
+</select>
 
       <input type="hidden" id="edit-id">
 
@@ -2602,6 +2626,7 @@ function registrarAgregadoCarrito() {
       const d = safeText(document.getElementById('descripcion')?.value || "");
       let o = safeText(document.getElementById('onzas')?.value || "");
       const disp = safeText(document.getElementById('disponibilidad')?.value || "inmediata");
+      const etiqueta = safeText(document.getElementById('etiqueta-producto')?.value || "");
 
       if(o && !o.toLowerCase().includes('oz') && !o.toLowerCase().includes('ml')) o += " oz";
 
@@ -2612,9 +2637,10 @@ function registrarAgregadoCarrito() {
       const img = currentImg || "https://via.placeholder.com/300";
 
       preview.innerHTML = `
-        <div class="card">
-          ${badgeStock}
-          ${o ? `<span class="badge-size">${o}</span>` : ''}
+  <div class="card">
+    ${etiqueta ? `<span class="badge-etiqueta">${etiqueta === 'popular' ? '🔥 Popular' : etiqueta === 'recomendado' ? '⭐ Recomendado' : etiqueta === 'masvendido' ? '🏆 Más vendido' : etiqueta === 'exclusivo' ? '💎 Exclusivo' : ''}</span>` : ''}
+    ${badgeStock}
+    ${o ? `<span class="badge-size">${o}</span>` : ''}
           <img src="${img}">
           <h3>${n}</h3>
           <p style="font-size:12px; opacity:.7;">${c}</p>
@@ -2639,6 +2665,9 @@ function registrarAgregadoCarrito() {
 
   const dispo = document.getElementById('disponibilidad');
   if (dispo) dispo.value = "inmediata";
+      
+      const etiquetaSelect = document.getElementById('etiqueta-producto');
+if (etiquetaSelect) etiquetaSelect.value = "";
 
   quitarFoto();
   document.getElementById('btn-add')?.classList.remove('hidden');
@@ -2675,6 +2704,7 @@ function registrarAgregadoCarrito() {
         stock: parseInt(document.getElementById('stock-cantidad')?.value) || 0,
         stockMinimo: parseInt(document.getElementById('stock-minimo')?.value) || 0,
         img: currentImg || existente?.img || "https://via.placeholder.com/300",
+        etiqueta: document.getElementById('etiqueta-producto')?.value || existente?.etiqueta || "",
         ventasAcumuladas: existente?.ventasAcumuladas || 0,
         ultimaActualizacion: fechaLocalISO()
       };
@@ -2739,6 +2769,8 @@ function registrarAgregadoCarrito() {
       document.getElementById('costo').value = p.costo;
       document.getElementById('stock-cantidad').value = p.stock || 0;
       document.getElementById('stock-minimo').value = p.stockMinimo || 0;
+      const etiquetaSelect = document.getElementById('etiqueta-producto');
+if (etiquetaSelect) etiquetaSelect.value = p.etiqueta || "";
 
       currentImg = p.img || "";
       document.getElementById('btn-add')?.classList.add('hidden');
@@ -3472,6 +3504,13 @@ function seleccionarCategoriaFiltro(categoria) {
 
       catalogoHTML += `
         <div class="card">
+  ${p.etiqueta ? `<span class="badge-etiqueta">${
+p.etiqueta === 'popular' ? '🔥 Popular' :
+p.etiqueta === 'recomendado' ? '⭐ Recomendado' :
+p.etiqueta === 'masvendido' ? '🏆 Más vendido' :
+p.etiqueta === 'exclusivo' ? '💎 Exclusivo' :
+''
+}</span>` : ''}
           <div class="info-lista">
             ${badgeStockCard}
             <span class="badge-size">${safeText(p.onzas)}</span>
