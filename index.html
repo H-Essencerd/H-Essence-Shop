@@ -794,6 +794,29 @@
       border:2px solid var(--dorado);
       border-radius:20px;
     }
+    #categorias-botones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+#categorias-botones button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 2px solid var(--dorado);
+  background: white;
+  color: var(--negro);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+#categorias-botones button.activo {
+  background: var(--dorado);
+  color: var(--negro);
+}
 
     .muted {
       color: #666;
@@ -1141,7 +1164,8 @@
 
       <input type="text" id="referencia" placeholder="Ref/SKU" oninput="updateLivePreview()">
       <input type="text" id="nombre" placeholder="Nombre Perfume" oninput="updateLivePreview()">
-      <input type="text" id="categoria" placeholder="Categoría / Marca (Ej: Lattafa, Dior, Árabe)" oninput="updateLivePreview()">
+      <input type="text" id="categoria" list="lista-categorias" placeholder="Categoría / Marca (Ej: Lattafa, Dior, Árabe)" oninput="updateLivePreview()">
+<datalist id="lista-categorias"></datalist>
       <textarea id="descripcion" rows="3" placeholder="Descripción: hombre, mujer, unisex, notas principales, estilo del aroma, ocasión..." oninput="updateLivePreview()"></textarea>
       <input type="text" id="onzas" placeholder="Tamaño (Ej: 100)" oninput="updateLivePreview()">
 
@@ -1389,10 +1413,12 @@
     </div>
 
     <div class="cliente-filtros">
-      <select id="categoria-filter" onchange="render()">
-        <option value="">Todas las categorías</option>
-      </select>
-    </div>
+  <div id="categorias-botones"></div>
+
+  <select id="categoria-filter" onchange="render()">
+    <option value="">Todas las categorías</option>
+  </select>
+</div>
 
     <div id="selector-formato-cliente">
       <button id="btn-view-grid" type="button" onclick="setVistaCatalogo('grid')">⣿ Cuadrícula</button>
@@ -2365,6 +2391,7 @@ function registrarAgregadoCarrito() {
     renderGastos();
     actualizarResumenTrafico();
     autocompletarReferenciaSiVacia();
+    actualizarListaCategoriasAdmin();
   });
 }
     async function guardarNube(forzar = false) {
@@ -2635,7 +2662,11 @@ function registrarAgregadoCarrito() {
         id: id ? parseInt(id) : Date.now() + Math.floor(Math.random() * 10000),
         ref: safeText(document.getElementById('referencia')?.value || generarSiguienteReferencia()),
         nombre: safeText(document.getElementById('nombre')?.value || ""),
-        categoria: safeText(document.getElementById('categoria')?.value || "General"),
+        categoria: (() => {
+  const cat = safeText(document.getElementById('categoria')?.value || "").trim();
+  if (!cat) return "General";
+  return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+})(),
         descripcion: safeText(document.getElementById('descripcion')?.value || ""),
         onzas: ozValue || "N/A",
         dispo: safeText(document.getElementById('disponibilidad')?.value || "inmediata"),
@@ -3284,6 +3315,81 @@ function registrarAgregadoCarrito() {
         select.value = actual;
       }
     }
+    function renderBotonesCategorias() {
+  const contenedor = document.getElementById('categorias-botones');
+  const select = document.getElementById('categoria-filter');
+  if (!contenedor || !select) return;
+
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+  const categoriaActiva = safeText(select.value || "");
+
+  const conteoCategorias = {};
+  productos.forEach(p => {
+    const cat = safeText(p.categoria || "").trim();
+    if (!cat) return;
+    conteoCategorias[cat] = (conteoCategorias[cat] || 0) + 1;
+  });
+
+  const categorias = Object.keys(conteoCategorias).sort((a, b) => a.localeCompare(b));
+  const totalProductos = productos.length;
+
+  let html = `
+    <button
+      type="button"
+      class="${categoriaActiva === "" ? "activo" : ""}"
+      onclick="seleccionarCategoriaFiltro('')">
+      Todos (${totalProductos})
+    </button>
+  `;
+
+  categorias.forEach(cat => {
+    const cantidad = conteoCategorias[cat] || 0;
+    html += `
+      <button
+        type="button"
+        class="${categoriaActiva === cat ? "activo" : ""}"
+        onclick="seleccionarCategoriaFiltro('${cat.replace(/'/g, "\\'")}')">
+        ${cat} (${cantidad})
+      </button>
+    `;
+  });
+
+  contenedor.innerHTML = html;
+}
+function seleccionarCategoriaFiltro(categoria) {
+  const select = document.getElementById('categoria-filter');
+  if (!select) return;
+
+  select.value = categoria;
+  render();
+}
+    
+    function actualizarListaCategoriasAdmin() {
+  const dataList = document.getElementById('lista-categorias');
+  if (!dataList) return;
+
+  const mapaCategorias = {};
+
+  (db.productos || []).forEach(p => {
+    const catOriginal = safeText(p.categoria || "").trim();
+    if (!catOriginal) return;
+
+    const clave = catOriginal.toLowerCase();
+
+    if (!mapaCategorias[clave]) {
+      mapaCategorias[clave] =
+        catOriginal.charAt(0).toUpperCase() +
+        catOriginal.slice(1).toLowerCase();
+    }
+  });
+
+  const categorias = Object.values(mapaCategorias)
+    .sort((a, b) => a.localeCompare(b));
+
+  dataList.innerHTML = categorias
+    .map(cat => `<option value="${cat}"></option>`)
+    .join('');
+}
 
     function renderAdminDebounced() {
       clearTimeout(renderTimerAdmin);
@@ -3296,133 +3402,151 @@ function registrarAgregadoCarrito() {
     }
 
     function render() {
-      const queryCliente = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
-      const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
-      const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
-      const tabla = document.getElementById('tabla-body');
-      const catalogo = document.getElementById('catalogo-container');
-      const btnCart = document.getElementById('btn-cart');
-      const panelCart = document.getElementById('cart-panel');
+  const queryCliente = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
+  const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
+  const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
+  const tabla = document.getElementById('tabla-body');
+  const catalogo = document.getElementById('catalogo-container');
+  const btnCart = document.getElementById('btn-cart');
+  const panelCart = document.getElementById('cart-panel');
 
-      const boxRuleta = document.getElementById('box-ruleta-cliente');
-      if (boxRuleta) boxRuleta.classList.toggle('hidden', !db.ruletaVisible);
+  const boxRuleta = document.getElementById('box-ruleta-cliente');
+  if (boxRuleta) boxRuleta.classList.toggle('hidden', !db.ruletaVisible);
 
-      llenarFiltroCategorias();
+  llenarFiltroCategorias();
+  renderBotonesCategorias();
+  actualizarListaCategoriasAdmin();
 
-      const productos = Array.isArray(db.productos) ? db.productos : [];
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+  const productosCliente = [...productos].sort((a, b) => (b.ventasAcumuladas || 0) - (a.ventasAcumuladas || 0));
 
-      let tablaHTML = "";
-      let catalogoHTML = "";
+  let tablaHTML = "";
+  let catalogoHTML = "";
 
-      productos.forEach(p => {
-        const textoAdmin = [
-          safeText(p.ref),
-          safeText(p.nombre),
-          safeText(p.categoria || "General"),
-          safeText(p.descripcion || ""),
-          safeText(p.onzas)
-        ].join(" ").toLowerCase();
+  // =========================
+  // TABLA ADMIN
+  // =========================
+  productos.forEach(p => {
+    const textoAdmin = [
+      safeText(p.ref),
+      safeText(p.nombre),
+      safeText(p.categoria || "General"),
+      safeText(p.descripcion || ""),
+      safeText(p.onzas)
+    ].join(" ").toLowerCase();
 
-        const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
+    const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
 
-        const ganancia = (p.venta || 0) - (p.costo || 0);
-        const margen = calcularMargenPorcentaje(p.venta, p.costo);
-        const estadoInv = obtenerEstadoInventario(p);
-        const stock = Number(p.stock) || 0;
-        const costo = Number(p.costo) || 0;
-        const venta = Number(p.venta) || 0;
-        const inversionTotal = costo * stock;
-        const valorTotal = venta * stock;
-        const ganPot = (venta - costo) * stock;
-        const badgeStockTable = p.dispo === 'inmediata'
-          ? '<span class="badge-dispo bg-inmediata">Inmediata</span>'
-          : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
+    const ganancia = (p.venta || 0) - (p.costo || 0);
+    const margen = calcularMargenPorcentaje(p.venta, p.costo);
+    const estadoInv = obtenerEstadoInventario(p);
+    const stock = Number(p.stock) || 0;
+    const costo = Number(p.costo) || 0;
+    const venta = Number(p.venta) || 0;
+    const inversionTotal = costo * stock;
+    const valorTotal = venta * stock;
+    const ganPot = (venta - costo) * stock;
+    const badgeStockTable = p.dispo === 'inmediata'
+      ? '<span class="badge-dispo bg-inmediata">Inmediata</span>'
+      : '<span class="badge-dispo bg-pedido">Por Pedido</span>';
 
-        if (tabla && coincideAdmin && esAdmin) {
-          tablaHTML += `
-            <tr>
-              <td>${safeText(p.ref)}</td>
-              <td>${safeText(p.nombre)}</td>
-              <td>${safeText(p.categoria || "General")}</td>
-              <td style="white-space:normal; min-width:220px;">${safeText(p.descripcion || "—")}</td>
-              <td>${safeText(p.onzas)}</td>
-              <td>${badgeStockTable}</td>
-              <td><b>${stock}</b></td>
-              <td>${p.stockMinimo || 0}</td>
-              <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
-              <td>${p.ventasAcumuladas || 0}</td>
-              <td>${formatMoney(costo)}</td>
-              <td>${formatMoney(venta)}</td>
-              <td style="color:green">${formatMoney(ganancia)}</td>
-              <td>${margen.toFixed(2)}%</td>
-              <td>${formatMoney(inversionTotal)}</td>
-              <td>${formatMoney(valorTotal)}</td>
-              <td>${formatMoney(ganPot)}</td>
-              <td>${fechaBonita(p.ultimaActualizacion)}</td>
-              <td>
-                <button onclick="editar(${p.id})">✏️</button>
-                <button onclick="abrirModalVenta(${p.id})">📦</button>
-                <button onclick="borrar(${p.id})">🗑️</button>
-              </td>
-            </tr>
-          `;
-        }
-
-        const ref = safeText(p.ref).toLowerCase();
-        const nom = safeText(p.nombre).toLowerCase();
-        const cat = safeText(p.categoria || "General");
-        const desc = safeText(p.descripcion || "");
-        const coincideBusqueda = !queryCliente || nom.includes(queryCliente) || ref.includes(queryCliente) || cat.toLowerCase().includes(queryCliente) || desc.toLowerCase().includes(queryCliente);
-        const coincideCategoria = !categoriaActiva || cat === categoriaActiva;
-
-        if (catalogo && coincideBusqueda && coincideCategoria) {
-          const badgeStockCard = p.dispo === 'inmediata'
-            ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
-            : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
-
-          const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
-          const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Descripción: *${safeText(p.descripcion || "Sin descripción")}*%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
-
-          const productUrl = window.location.href.split('#')[0];
-          const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nDescripción: ${safeText(p.descripcion || "Sin descripción")}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
-          const waShare = `https://wa.me/?text=${shareText}`;
-
-          catalogoHTML += `
-            <div class="card">
-              <div class="info-lista">
-                ${badgeStockCard}
-                <span class="badge-size">${safeText(p.onzas)}</span>
-                <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
-                <h3>${safeText(p.nombre)}</h3>
-                <p style="font-size:12px; opacity:.7; margin-bottom:4px;">${cat}</p>
-                ${p.descripcion ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${safeText(p.descripcion)}</p>` : ""}
-                <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
-
-                <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()"
-  style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold; width:100%;">
-  WhatsApp
-</a>
-
-                ${db.cartEnabled ? `<button class="btn-add-cart" type="button" onclick="addToCart(${p.id})">➕ Agregar al carrito</button>` : ``}
-                <button class="btn-share-product" type="button" onclick="shareProduct('${waShare}', '${safeText(p.nombre).replace(/'/g,"\\'")}')">🔗 Compartir este producto</button>
-              </div>
-            </div>
-          `;
-        }
-      });
-
-      if (tabla) tabla.innerHTML = tablaHTML;
-      if (catalogo) catalogo.innerHTML = catalogoHTML;
-
-      if (btnCart) btnCart.style.display = db.cartEnabled ? "block" : "none";
-      if (!db.cartEnabled && panelCart) panelCart.style.display = "none";
-
-      actualizarBadgeCart();
-      aplicarVistaCatalogo();
-      actualizarLogoCentroRuleta();
-      actualizarDashboardAdmin();
+    if (tabla && coincideAdmin && esAdmin) {
+      tablaHTML += `
+        <tr>
+          <td>${safeText(p.ref)}</td>
+          <td>${safeText(p.nombre)}</td>
+          <td>${safeText(p.categoria || "General")}</td>
+          <td style="white-space:normal; min-width:220px;">${safeText(p.descripcion || "—")}</td>
+          <td>${safeText(p.onzas)}</td>
+          <td>${badgeStockTable}</td>
+          <td><b>${stock}</b></td>
+          <td>${p.stockMinimo || 0}</td>
+          <td><span class="badge-dispo ${estadoInv.clase}">${estadoInv.label}</span></td>
+          <td>${p.ventasAcumuladas || 0}</td>
+          <td>${formatMoney(costo)}</td>
+          <td>${formatMoney(venta)}</td>
+          <td style="color:green">${formatMoney(ganancia)}</td>
+          <td>${margen.toFixed(2)}%</td>
+          <td>${formatMoney(inversionTotal)}</td>
+          <td>${formatMoney(valorTotal)}</td>
+          <td>${formatMoney(ganPot)}</td>
+          <td>${fechaBonita(p.ultimaActualizacion)}</td>
+          <td>
+            <button onclick="editar(${p.id})">✏️</button>
+            <button onclick="abrirModalVenta(${p.id})">📦</button>
+            <button onclick="borrar(${p.id})">🗑️</button>
+          </td>
+        </tr>
+      `;
     }
+  });
 
+  // =========================
+  // CATÁLOGO CLIENTE
+  // =========================
+  productosCliente.forEach(p => {
+    const ref = safeText(p.ref).toLowerCase();
+    const nom = safeText(p.nombre).toLowerCase();
+    const cat = safeText(p.categoria || "General");
+    const desc = safeText(p.descripcion || "");
+
+    const coincideBusqueda =
+      !queryCliente ||
+      nom.includes(queryCliente) ||
+      ref.includes(queryCliente) ||
+      cat.toLowerCase().includes(queryCliente) ||
+      desc.toLowerCase().includes(queryCliente);
+
+    const coincideCategoria =
+      !categoriaActiva || cat.toLowerCase() === categoriaActiva.toLowerCase();
+
+    if (catalogo && coincideBusqueda && coincideCategoria) {
+      const badgeStockCard = p.dispo === 'inmediata'
+        ? '<span class="badge-dispo bg-inmediata badge-card-dispo">Entrega Inmediata</span>'
+        : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
+
+      const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
+      const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Descripción: *${safeText(p.descripcion || "Sin descripción")}*%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
+
+      const productUrl = window.location.href.split('#')[0];
+      const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nDescripción: ${safeText(p.descripcion || "Sin descripción")}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
+      const waShare = `https://wa.me/?text=${shareText}`;
+
+      catalogoHTML += `
+        <div class="card">
+          <div class="info-lista">
+            ${badgeStockCard}
+            <span class="badge-size">${safeText(p.onzas)}</span>
+            <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
+            <h3>${safeText(p.nombre)}</h3>
+            <p style="font-size:12px; opacity:.7; margin-bottom:4px;">${cat}</p>
+            ${p.descripcion ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${safeText(p.descripcion)}</p>` : ""}
+            <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">RD$ ${p.venta || 0}</p>
+
+            <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()"
+              style="display:inline-block; margin-top:10px; padding:10px 20px; background:var(--whatsapp); color:white; text-decoration:none; border-radius:20px; font-weight:bold; width:100%;">
+              WhatsApp
+            </a>
+
+            ${db.cartEnabled ? `<button class="btn-add-cart" type="button" onclick="addToCart(${p.id})">➕ Agregar al carrito</button>` : ``}
+            <button class="btn-share-product" type="button" onclick="shareProduct('${waShare}', '${safeText(p.nombre).replace(/'/g,"\\'")}')">🔗 Compartir este producto</button>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  if (tabla) tabla.innerHTML = tablaHTML;
+  if (catalogo) catalogo.innerHTML = catalogoHTML;
+
+  if (btnCart) btnCart.style.display = db.cartEnabled ? "block" : "none";
+  if (!db.cartEnabled && panelCart) panelCart.style.display = "none";
+
+  actualizarBadgeCart();
+  aplicarVistaCatalogo();
+  actualizarLogoCentroRuleta();
+  actualizarDashboardAdmin();
+}
     async function shareCatalog() {
       const url = window.location.href.split('#')[0];
       if (navigator.share) {
@@ -3728,6 +3852,7 @@ function registrarAgregadoCarrito() {
     escucharAuth();
     render();
     autocompletarReferenciaSiVacia();
+    actualizarListaCategoriasAdmin();
     registrarVisitaUnicaSesion();
 
     const btnLogout = document.getElementById('btn-logout-admin');
@@ -3819,9 +3944,12 @@ function registrarAgregadoCarrito() {
     window.limpiarFiltrosVentas = limpiarFiltrosVentas;
     window.autocompletarReferenciaSiVacia = autocompletarReferenciaSiVacia;
     window.generarSiguienteReferencia = generarSiguienteReferencia;
+    window.actualizarListaCategoriasAdmin = actualizarListaCategoriasAdmin;
     window.registrarClickWhatsApp = registrarClickWhatsApp;
     window.registrarAgregadoCarrito = registrarAgregadoCarrito;
     window.actualizarResumenTrafico = actualizarResumenTrafico;
+    window.seleccionarCategoriaFiltro = seleccionarCategoriaFiltro;
+    window.renderBotonesCategorias = renderBotonesCategorias;
   </script>
 </body>
 </html>
