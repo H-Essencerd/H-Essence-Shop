@@ -3465,8 +3465,7 @@ function seleccionarCategoriaFiltro(categoria) {
         : '<span class="badge-dispo bg-pedido badge-card-dispo">Por Pedido</span>';
 
       const textoDispo = p.dispo === 'inmediata' ? 'Entrega Inmediata' : 'Por Pedido';
-      const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Descripción: *${safeText(p.descripcion || "Sin descripción")}*%0A- Estado: *${textoDispo}*%0A- Precio: RD$ ${p.venta || 0}`;
-
+      const wsMsg = `Hola, me interesa este perfume:%0A- *${safeText(p.nombre)}* (${safeText(p.onzas)})%0A- Categoría: *${cat}*%0A- Precio: ${formatMoney(p.venta)}`;
       const productUrl = window.location.href.split('#')[0];
       const shareText = encodeURIComponent(`⭐ ${db.nombreTienda || 'H-ESSENCE'} ⭐\n\nMe interesa: ${safeText(p.nombre)} (${safeText(p.onzas)})\nCategoría: ${cat}\nDescripción: ${safeText(p.descripcion || "Sin descripción")}\nPrecio: RD$ ${p.venta || 0}\n\nCatálogo: ${productUrl}`);
       const waShare = `https://wa.me/?text=${shareText}`;
