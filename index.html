@@ -530,21 +530,26 @@
   color: #111827;
 }
 
-.btn-add-lista {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 50%;
-  border: 1px solid #bfc8d4;
-  background: white;
-  color: #111827;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
+.btn-add-lista{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:2px solid var(--dorado);
+  background:white;
+  color:var(--dorado);
+  font-size:18px;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:all .2s ease;
+}
+
+.btn-add-lista:hover{
+  background:var(--dorado);
+  color:white;
+  transform:scale(1.08);
 }
     .clear-search-btn {
   position: absolute;
@@ -1567,9 +1572,16 @@ Etiqueta del producto
     <div class="cliente-filtros">
   
 
-  <select id="categoria-filter" onchange="render()">
-    <option value="">Todas las categorías</option>
-  </select>
+  <input
+type="text"
+id="categoria-filter"
+list="lista-categorias-cliente"
+placeholder="Buscar por categoría o marca..."
+oninput="toggleClearCategoria(); renderClienteDebounced()"
+style="max-width:280px; border:2px solid var(--dorado); border-radius:20px; padding-right:44px;"
+>
+
+<datalist id="lista-categorias-cliente"></datalist>
 </div>
 
     <div id="selector-formato-cliente">
@@ -2016,6 +2028,9 @@ function registrarAgregadoCarrito() {
       aplicarLayoutHeader();
       actualizarLogoCentroRuleta();
     }
+    function cargarCategoriasCliente() {
+  llenarFiltroCategorias();
+}
 
     function previewHeaderText() {
       const nombre = safeText(document.getElementById('input-shop-name')?.value || db.nombreTienda || "H-ESSENCE");
@@ -2532,6 +2547,8 @@ function registrarAgregadoCarrito() {
     db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
     db.agregadosCarrito = Number(db.agregadosCarrito || 0);
 
+    normalizarCategoriasExistentes();
+
     saveLocal();
     ultimoGuardadoHash = getDBHash();
     cargarInputsAdmin();
@@ -2804,6 +2821,38 @@ if (etiquetaSelect) etiquetaSelect.value = "";
   autocompletarReferenciaSiVacia();
   updateLivePreview();
 }
+    function normalizarCategoriaTexto(cat) {
+  return safeText(cat)
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+}
+
+function normalizarCategoriasExistentes() {
+  if (!Array.isArray(db.productos)) return;
+
+  let cambios = 0;
+
+  db.productos = db.productos.map(p => {
+    const categoriaOriginal = safeText(p.categoria || "General");
+    const categoriaNueva = normalizarCategoriaTexto(categoriaOriginal);
+
+    if (categoriaOriginal !== categoriaNueva) cambios++;
+
+    return {
+      ...p,
+      categoria: categoriaNueva
+    };
+  });
+
+  if (cambios > 0) {
+    db._updatedAt = Date.now();
+    saveLocal();
+    actualizarListaCategoriasAdmin();
+  }
+}
     async function procesarProducto() {
       if (!esAdmin) return;
 
@@ -2822,7 +2871,7 @@ if (etiquetaSelect) etiquetaSelect.value = "";
         categoria: (() => {
   const cat = safeText(document.getElementById('categoria')?.value || "").trim();
   if (!cat) return "General";
-  return cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
+  return normalizarCategoriaTexto(cat);
 })(),
         descripcion: safeText(document.getElementById('descripcion')?.value || ""),
         onzas: ozValue || "N/A",
@@ -3454,36 +3503,50 @@ if (etiquetaSelect) etiquetaSelect.value = p.etiqueta || "";
     }
 
     function setVistaCatalogo(modo) {
-      vistaCatalogo = modo === 'list' ? 'list' : 'grid';
-      localStorage.setItem("h_view_mode", vistaCatalogo);
-      aplicarVistaCatalogo();
-    }
-
-    function llenarFiltroCategorias() {
-      const select = document.getElementById('categoria-filter');
-      if (!select) return;
-
-      const actual = select.value;
-      const categorias = [...new Set((db.productos || []).map(p => safeText(p.categoria || "General").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-
-      select.innerHTML = `<option value="">Todas las categorías</option>`;
-      categorias.forEach(cat => {
-        select.innerHTML += `<option value="${cat}">${cat}</option>`;
-      });
-
-      if ([...select.options].some(opt => opt.value === actual)) {
-        select.value = actual;
-      }
-    }
-    
-function seleccionarCategoriaFiltro(categoria) {
-  const select = document.getElementById('categoria-filter');
-  if (!select) return;
-
-  select.value = categoria;
+  vistaCatalogo = modo === 'list' ? 'list' : 'grid';
+  localStorage.setItem("h_view_mode", vistaCatalogo);
   render();
 }
+
+    function llenarFiltroCategorias() {
+  const lista = document.getElementById('lista-categorias-cliente');
+  if (!lista) return;
+
+  const valorActual = safeText(document.getElementById('categoria-filter')?.value || "").trim();
+
+  const mapaCategorias = {};
+
+  (db.productos || []).forEach(p => {
+    const catOriginal = safeText(p.categoria || "").trim();
+    if (!catOriginal) return;
+
+    const categoriaLimpia = normalizarCategoriaTexto(catOriginal);
+    const clave = categoriaLimpia.toLowerCase();
+
+    if (!mapaCategorias[clave]) {
+      mapaCategorias[clave] = categoriaLimpia;
+    }
+  });
+
+  const categorias = Object.values(mapaCategorias)
+    .sort((a, b) => a.localeCompare(b));
+
+  lista.innerHTML = categorias
+    .map(cat => `<option value="${cat}"></option>`)
+    .join("");
+
+  const input = document.getElementById('categoria-filter');
+  if (input) input.value = valorActual;
+}
     
+function seleccionarCategoriaFiltro(categoria) {
+  const input = document.getElementById('categoria-filter');
+  if (!input) return;
+
+  input.value = categoria || "";
+  toggleClearCategoria();
+  render();
+}    
     function actualizarListaCategoriasAdmin() {
   const dataList = document.getElementById('lista-categorias');
   if (!dataList) return;
@@ -3494,11 +3557,12 @@ function seleccionarCategoriaFiltro(categoria) {
     const catOriginal = safeText(p.categoria || "").trim();
     if (!catOriginal) return;
 
-    const clave = catOriginal.toLowerCase();
+    const categoriaLimpia = normalizarCategoriaTexto(catOriginal);
+    const clave = categoriaLimpia.toLowerCase();
 
     if (!mapaCategorias[clave]) {
-  mapaCategorias[clave] = catOriginal;
-}
+      mapaCategorias[clave] = categoriaLimpia;
+    }
   });
 
   const categorias = Object.values(mapaCategorias)
@@ -3508,7 +3572,6 @@ function seleccionarCategoriaFiltro(categoria) {
     .map(cat => `<option value="${cat}"></option>`)
     .join('');
 }
-
     function renderAdminDebounced() {
       clearTimeout(renderTimerAdmin);
       renderTimerAdmin = setTimeout(() => render(), 180);
@@ -3520,9 +3583,9 @@ function seleccionarCategoriaFiltro(categoria) {
     }
 
     function render() {
-  const queryCliente = safeText(document.getElementById('search-input')?.value || "").toLowerCase();
-  const queryAdmin = safeText(document.getElementById('admin-search-input')?.value || "").toLowerCase();
-  const categoriaActiva = safeText(document.getElementById('categoria-filter')?.value || "");
+  const queryCliente = normalizeText(document.getElementById('search-input')?.value || "");
+  const queryAdmin = normalizeText(document.getElementById('admin-search-input')?.value || "");
+  const categoriaActiva = normalizeText(document.getElementById('categoria-filter')?.value || "");
   const tabla = document.getElementById('tabla-body');
   const catalogo = document.getElementById('catalogo-container');
   const btnCart = document.getElementById('btn-cart');
@@ -3540,17 +3603,14 @@ function seleccionarCategoriaFiltro(categoria) {
   let tablaHTML = "";
   let catalogoHTML = "";
 
-  // =========================
-  // TABLA ADMIN
-  // =========================
   productos.forEach(p => {
-    const textoAdmin = [
+    const textoAdmin = normalizeText([
       safeText(p.ref),
       safeText(p.nombre),
       safeText(p.categoria || "General"),
       safeText(p.descripcion || ""),
       safeText(p.onzas)
-    ].join(" ").toLowerCase();
+    ].join(" "));
 
     const coincideAdmin = !queryAdmin || textoAdmin.includes(queryAdmin);
 
@@ -3598,24 +3658,23 @@ function seleccionarCategoriaFiltro(categoria) {
     }
   });
 
-  // =========================
-  // CATÁLOGO CLIENTE
-  // =========================
   productosCliente.forEach(p => {
-    const ref = safeText(p.ref).toLowerCase();
-    const nom = safeText(p.nombre).toLowerCase();
+    const ref = normalizeText(p.ref);
+    const nom = normalizeText(p.nombre);
     const cat = safeText(p.categoria || "General");
-    const desc = safeText(p.descripcion || "");
+    const catNorm = normalizeText(cat);
+    const desc = normalizeText(p.descripcion || "");
 
     const coincideBusqueda =
       !queryCliente ||
       nom.includes(queryCliente) ||
       ref.includes(queryCliente) ||
-      cat.toLowerCase().includes(queryCliente) ||
-      desc.toLowerCase().includes(queryCliente);
+      catNorm.includes(queryCliente) ||
+      desc.includes(queryCliente);
 
     const coincideCategoria =
-      !categoriaActiva || cat.toLowerCase() === categoriaActiva.toLowerCase();
+      !categoriaActiva ||
+      catNorm.includes(categoriaActiva);
 
     if (catalogo && coincideBusqueda && coincideCategoria) {
       const badgeStockCard = p.dispo === 'inmediata'
@@ -3628,25 +3687,25 @@ function seleccionarCategoriaFiltro(categoria) {
       const waShare = `https://wa.me/?text=${shareText}`;
 
       if (vistaCatalogo === 'list') {
-  catalogoHTML += `
-    <div class="card card-lista-simple">
-      <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
+        catalogoHTML += `
+          <div class="card card-lista-simple">
+            <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
 
-      <div class="info-lista-simple">
-        <h3>${safeText(p.nombre)}</h3>
-        <div class="meta-lista">
-          ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
-        </div>
-        <p class="precio-lista">${formatMoney(p.venta)}</p>
-      </div>
+            <div class="info-lista-simple">
+              <h3>${safeText(p.nombre)}</h3>
+              <div class="meta-lista">
+                ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
+              </div>
+              <p class="precio-lista">${formatMoney(p.venta)}</p>
+            </div>
 
-      ${db.cartEnabled
-        ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">⊕</button>`
-        : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">⊕</a>`
-      }
-    </div>
-  `;
-} else {
+            ${db.cartEnabled
+              ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">⊕</button>`
+              : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">⊕</a>`
+            }
+          </div>
+        `;
+      } else {
         catalogoHTML += `
           <div class="card">
             ${p.etiqueta ? `<span class="badge-etiqueta">${
@@ -3689,6 +3748,7 @@ function seleccionarCategoriaFiltro(categoria) {
   aplicarVistaCatalogo();
   actualizarLogoCentroRuleta();
   actualizarDashboardAdmin();
+  toggleClearCategoria();
 }
     async function shareCatalog() {
       const url = window.location.href.split('#')[0];
@@ -3984,7 +4044,8 @@ function seleccionarCategoriaFiltro(categoria) {
     db.visitasTotales = Number(db.visitasTotales || 0);
     db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
     db.agregadosCarrito = Number(db.agregadosCarrito || 0);
-
+    
+normalizarCategoriasExistentes();
     actualizarUIHeader();
     dibujarRuleta();
     updateLivePreview();
@@ -3994,7 +4055,9 @@ function seleccionarCategoriaFiltro(categoria) {
     escucharNube();
     escucharAuth();
     render();
+    cargarCategoriasCliente();
     toggleClearSearch();
+    toggleClearCategoria();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
     registrarVisitaUnicaSesion();
@@ -4105,6 +4168,29 @@ function seleccionarCategoriaFiltro(categoria) {
 }
 
 window.toggleInventario = toggleInventario;
+    function toggleClearCategoria() {
+  const input = document.getElementById('categoria-filter');
+  if (!input) return;
+
+  const valor = input.value.trim();
+  input.style.backgroundImage = valor
+    ? "linear-gradient(45deg, transparent calc(50% - 1px), #64748b calc(50% - 1px), #64748b calc(50% + 1px), transparent calc(50% + 1px)), linear-gradient(-45deg, transparent calc(50% - 1px), #64748b calc(50% - 1px), #64748b calc(50% + 1px), transparent calc(50% + 1px))"
+    : "none";
+  input.style.backgroundRepeat = "no-repeat";
+  input.style.backgroundSize = valor ? "10px 10px, 10px 10px" : "0 0, 0 0";
+  input.style.backgroundPosition = valor ? "right 14px center, right 14px center" : "";
+  input.style.cursor = "text";
+}
+
+function limpiarCategoriaCliente() {
+  const input = document.getElementById('categoria-filter');
+  if (!input) return;
+
+  input.value = "";
+  toggleClearCategoria();
+  render();
+  input.focus();
+}
     function toggleClearSearch() {
   const input = document.getElementById('search-input');
   const btn = document.getElementById('btn-clear-search');
@@ -4129,6 +4215,8 @@ function limpiarBusquedaCliente() {
 
 window.toggleClearSearch = toggleClearSearch;
 window.limpiarBusquedaCliente = limpiarBusquedaCliente;
+window.toggleClearCategoria = toggleClearCategoria;
+window.limpiarCategoriaCliente = limpiarCategoriaCliente;
   </script>
 </body>
 </html>
