@@ -426,10 +426,10 @@
     }
 
     .grid-cliente.modo-lista {
-      display:flex !important;
-      flex-direction:column;
-      gap:12px;
-    }
+  display:grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap:12px;
+}
 
     .card {
       background: white;
@@ -991,17 +991,17 @@
     }
 
     @media (max-width: 700px) {
-      .grid-cliente.modo-lista .card {
-        flex-direction:column;
-        text-align:center;
-      }
 
-      .grid-cliente.modo-lista .card img {
-        width:100%;
-        height:220px;
-      }
-    }
-    @media (max-width: 700px) {
+  .grid-cliente.modo-lista .card {
+    flex-direction:column;
+    text-align:center;
+  }
+
+  .grid-cliente.modo-lista .card img {
+    width:100%;
+    height:220px;
+  }
+
   .grid-cliente.modo-lista .card-lista-simple {
     flex-direction: row !important;
     text-align: left !important;
@@ -1013,6 +1013,11 @@
     height: 58px !important;
     object-fit: contain !important;
   }
+
+  .grid-cliente.modo-lista {
+    grid-template-columns: 1fr !important;
+  }
+
 }
   </style>
 </head>
@@ -1570,18 +1575,27 @@ Etiqueta del producto
     </div>
 
     <div class="cliente-filtros">
-  
+  <div style="position:relative; max-width:280px; width:100%;">
+    <input
+      type="text"
+      id="categoria-filter"
+      list="lista-categorias-cliente"
+      placeholder="Buscar por categoría o marca..."
+      oninput="toggleClearCategoria(); renderClienteDebounced()"
+      style="width:100%; border:2px solid var(--dorado); border-radius:20px; padding-right:44px;"
+    >
 
-  <input
-type="text"
-id="categoria-filter"
-list="lista-categorias-cliente"
-placeholder="Buscar por categoría o marca..."
-oninput="toggleClearCategoria(); renderClienteDebounced()"
-style="max-width:280px; border:2px solid var(--dorado); border-radius:20px; padding-right:44px;"
->
+    <button
+      type="button"
+      id="btn-clear-categoria"
+      class="clear-search-btn"
+      onclick="limpiarCategoriaCliente()"
+    >
+      ×
+    </button>
+  </div>
 
-<datalist id="lista-categorias-cliente"></datalist>
+  <datalist id="lista-categorias-cliente"></datalist>
 </div>
 
     <div id="selector-formato-cliente">
@@ -1911,6 +1925,8 @@ function actualizarResumenTrafico() {
 }
 
 function registrarVisitaUnicaSesion() {
+  if (esAdmin) return;
+  
   const keyHoy = getFechaKey();
   const sessionKey = `h_visita_${keyHoy}`;
 
@@ -1918,7 +1934,7 @@ function registrarVisitaUnicaSesion() {
   sessionStorage.setItem(sessionKey, "1");
 
   if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
-
+  
   db.visitasTotales = (Number(db.visitasTotales) || 0) + 1;
   db.visitasHoy[keyHoy] = (Number(db.visitasHoy[keyHoy]) || 0) + 1;
   db._updatedAt = Date.now();
@@ -1931,6 +1947,8 @@ function registrarVisitaUnicaSesion() {
 }
 
 function registrarClickWhatsApp() {
+  if (esAdmin) return;
+
   db.clicksWhatsApp = (Number(db.clicksWhatsApp) || 0) + 1;
   db._updatedAt = Date.now();
 
@@ -1939,8 +1957,10 @@ function registrarClickWhatsApp() {
 
   rdb.ref(PATH_DB).child("clicksWhatsApp").transaction(current => (Number(current) || 0) + 1);
 }
-
+    
 function registrarAgregadoCarrito() {
+  if (esAdmin) return;
+  
   db.agregadosCarrito = (Number(db.agregadosCarrito) || 0) + 1;
   db._updatedAt = Date.now();
 
@@ -2509,18 +2529,20 @@ function registrarAgregadoCarrito() {
     }
 
     function escucharAuth() {
-      firebase.auth().onAuthStateChanged((user) => {
-        const adminActivo = !!user && user.email === ADMIN_EMAIL;
+  firebase.auth().onAuthStateChanged((user) => {
+    const adminActivo = !!user && user.email === ADMIN_EMAIL;
 
-        setModoAdmin(adminActivo);
+    setModoAdmin(adminActivo);
 
-        if (adminActivo) {
-          cargarInputsAdmin();
-        }
-
-        actualizarBotonesAuth();
-      });
+    if (adminActivo) {
+      cargarInputsAdmin();
+    } else {
+      registrarVisitaUnicaSesion();
     }
+
+    actualizarBotonesAuth();
+  });
+}
 
     firebase.initializeApp(firebaseConfig);
     const rdb = firebase.database();
@@ -3700,8 +3722,8 @@ function seleccionarCategoriaFiltro(categoria) {
             </div>
 
             ${db.cartEnabled
-              ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">⊕</button>`
-              : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">⊕</a>`
+              ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">🛒</button>`
+              : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">🛒</a>`
             }
           </div>
         `;
@@ -3801,12 +3823,17 @@ function seleccionarCategoriaFiltro(categoria) {
 
     function addToCart(productId) {
   if (!db.cartEnabled) return;
+
   const existing = cart.find(x => x.id === productId);
   if (existing) existing.qty += 1;
   else cart.push({ id: productId, qty: 1 });
 
   saveCart();
-  registrarAgregadoCarrito();
+
+  if (!esAdmin) {
+    registrarAgregadoCarrito();
+  }
+
   abrirCarrito();
 }
 
@@ -3931,6 +3958,10 @@ function seleccionarCategoriaFiltro(categoria) {
       lines.push(`¿Me confirmas disponibilidad y método de entrega?`);
 
       const msg = encodeURIComponent(lines.join("\n"));
+
+      if (!esAdmin) {
+  registrarClickWhatsApp();
+}
       window.open(`https://wa.me/${TEL_WHATSAPP}?text=${msg}`, "_blank");
     }
 
@@ -4060,7 +4091,6 @@ normalizarCategoriasExistentes();
     toggleClearCategoria();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
-    registrarVisitaUnicaSesion();
 
     const btnLogout = document.getElementById('btn-logout-admin');
     if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
@@ -4170,16 +4200,14 @@ normalizarCategoriasExistentes();
 window.toggleInventario = toggleInventario;
     function toggleClearCategoria() {
   const input = document.getElementById('categoria-filter');
-  if (!input) return;
+  const btn = document.getElementById('btn-clear-categoria');
+  if (!input || !btn) return;
 
-  const valor = input.value.trim();
-  input.style.backgroundImage = valor
-    ? "linear-gradient(45deg, transparent calc(50% - 1px), #64748b calc(50% - 1px), #64748b calc(50% + 1px), transparent calc(50% + 1px)), linear-gradient(-45deg, transparent calc(50% - 1px), #64748b calc(50% - 1px), #64748b calc(50% + 1px), transparent calc(50% + 1px))"
-    : "none";
-  input.style.backgroundRepeat = "no-repeat";
-  input.style.backgroundSize = valor ? "10px 10px, 10px 10px" : "0 0, 0 0";
-  input.style.backgroundPosition = valor ? "right 14px center, right 14px center" : "";
-  input.style.cursor = "text";
+  if (input.value.trim()) {
+    btn.classList.add('visible');
+  } else {
+    btn.classList.remove('visible');
+  }
 }
 
 function limpiarCategoriaCliente() {
