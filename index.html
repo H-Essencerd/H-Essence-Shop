@@ -1236,7 +1236,9 @@ Etiqueta del producto
         </div>
       </div>
 
-      <div class="table-container">
+      <button class="btn-mini btn-gray" type="button" onclick="toggleInventario()">👁️ Mostrar / Ocultar inventario</button>
+
+<div id="inventario-wrap" class="table-container">
         <table>
           <thead>
             <tr>
@@ -3945,6 +3947,18 @@ p.etiqueta === 'exclusivo' ? '💎 Exclusivo' :
     window.registrarAgregadoCarrito = registrarAgregadoCarrito;
     window.actualizarResumenTrafico = actualizarResumenTrafico;
     window.seleccionarCategoriaFiltro = seleccionarCategoriaFiltro;
+    function toggleInventario() {
+  const box = document.getElementById('inventario-wrap');
+  if (!box) return;
+
+  if (box.style.display === 'none') {
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+window.toggleInventario = toggleInventario;
   </script>
 </body>
 </html>
