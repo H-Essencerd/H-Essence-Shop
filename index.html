@@ -1179,50 +1179,50 @@
     <div>
       <label class="small-label">Saldo inicial del negocio</label>
       <input type="number" id="saldo-inicial-input" min="0" step="0.01" placeholder="Ej: 15000">
-      </div>
     </div>
-    <div class="panel-subbox" style="margin-top:15px;">
-<h4>➕ Ajuste manual de balance</h4>
-
-<div class="calculator-grid">
-
-<div>
-<label class="small-label">Monto</label>
-<input type="number" id="ajuste-monto" placeholder="Ej: 5000">
-</div>
-
-<div>
-<label class="small-label">Tipo</label>
-<select id="ajuste-tipo">
-<option value="sumar">Sumar dinero</option>
-<option value="restar">Restar dinero</option>
-</select>
-</div>
-
-<div style="display:flex; align-items:end;">
-<button class="btn-mini btn-green" style="width:100%;" onclick="agregarAjusteBalance()">Guardar ajuste</button>
-</div>
-
-</div>
-</div>
 
     <div style="display:flex; align-items:end;">
       <button class="btn-mini btn-green" style="width:100%;" onclick="guardarSaldoInicial()">💾 Guardar saldo inicial</button>
     </div>
   </div>
-<div class="table-container" style="margin-top:15px;">
-  <table>
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Tipo</th>
-        <th>Monto</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
-    <tbody id="tabla-ajustes-body"></tbody>
-  </table>
-</div>
+
+  <div class="panel-subbox" style="margin-top:15px;">
+    <h4>➕ Ajuste manual de balance</h4>
+
+    <div class="calculator-grid">
+      <div>
+        <label class="small-label">Monto</label>
+        <input type="number" id="ajuste-monto" placeholder="Ej: 5000">
+      </div>
+
+      <div>
+        <label class="small-label">Tipo</label>
+        <select id="ajuste-tipo">
+          <option value="sumar">Sumar dinero</option>
+          <option value="restar">Restar dinero</option>
+        </select>
+      </div>
+
+      <div style="display:flex; align-items:end;">
+        <button class="btn-mini btn-green" style="width:100%;" onclick="agregarAjusteBalance()">Guardar ajuste</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container" style="margin-top:15px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Tipo</th>
+          <th>Monto</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-ajustes-body"></tbody>
+    </table>
+  </div>
+
   <p class="muted" style="margin-top:10px;">
     Este valor representa el dinero que ya tenía el negocio antes de empezar a registrar ventas en la app.
   </p>
@@ -2214,7 +2214,6 @@ const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 
       setText('stat-bajo-stock', bajoStock);
       setText('stat-agotados', agotados);
       setText('stat-gastos-total', formatMoney(totalGastos));
-      setText('stat-ganancia-neta', formatMoney(gananciaNeta));
       setText('stat-saldo-inicial', formatMoney(saldoInicial));
       setText('stat-balance-actual', formatMoney(balanceActual));
 
@@ -2702,6 +2701,7 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
   actualizarDashboardAdmin();
   renderHistorialVentas();
   renderGastos();
+  renderAjustesBalance();
   actualizarResumenTrafico();
 }
 
