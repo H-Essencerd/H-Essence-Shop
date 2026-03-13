@@ -1519,12 +1519,8 @@ Etiqueta del producto
     <small>Gastos de este mes</small>
     <strong id="gastos-mes-total">RD$ 0</strong>
   </div>
-  <div class="stat-card">
-    <small>Ganancia mes después de gastos</small>
-    <strong id="gastos-balance-mes">RD$ 0</strong>
-  </div>
   <div class="stat-card stat-card-balance">
-    <small>Balance actual después de gastos</small>
+    <small>Balance actual del negocio</small>
     <strong id="gastos-balance-actual">RD$ 0</strong>
   </div>
 </div>
@@ -2297,7 +2293,7 @@ set('ventas-mes-ganancia', formatMoney(gananciaMes));
 
 set('gastos-hoy-total', formatMoney(gastosHoy));
 set('gastos-mes-total', formatMoney(gastosMes));
-set('gastos-balance-mes', formatMoney(gananciaMes - gastosMes));
+
 set('gastos-balance-actual', formatMoney(balanceActualGeneral));
   
     }
