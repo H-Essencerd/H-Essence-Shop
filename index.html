@@ -256,6 +256,11 @@
       padding: 14px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.04);
     }
+    .stat-card-balance {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-left: 5px solid var(--ganancia);
+}
 
     .stat-card small {
       display: block;
@@ -1143,6 +1148,15 @@
           <strong id="stat-ganancia-neta">RD$ 0</strong>
         </div>
         <div class="stat-card">
+  <small>Saldo inicial del negocio</small>
+  <strong id="stat-saldo-inicial">RD$ 0</strong>
+</div>
+
+<div class="stat-card stat-card-balance">
+  <small>Balance actual del negocio</small>
+  <strong id="stat-balance-actual">RD$ 0</strong>
+</div>
+        <div class="stat-card">
   <small>Visitas hoy</small>
   <strong id="stat-visitas-hoy">0</strong>
 </div>
@@ -1160,6 +1174,26 @@
 </div>
       </div>
 
+     <div class="panel-subbox" style="margin-top:18px;">
+  <div class="section-head">
+    <h4>💰 Ajuste manual de balance</h4>
+  </div>
+
+  <div class="calculator-grid">
+    <div>
+      <label class="small-label">Saldo inicial del negocio</label>
+      <input type="number" id="saldo-inicial-input" min="0" step="0.01" placeholder="Ej: 15000">
+    </div>
+
+    <div style="display:flex; align-items:end;">
+      <button class="btn-mini btn-green" style="width:100%;" onclick="guardarSaldoInicial()">💾 Guardar saldo inicial</button>
+    </div>
+  </div>
+
+  <p class="muted" style="margin-top:10px;">
+    Este valor representa el dinero que ya tenía el negocio antes de empezar a registrar ventas en la app.
+  </p>
+</div>
       <div style="margin-top:18px;">
         <h4>🏆 Top 5 productos con mejor margen %</h4>
         <div id="top-margen-lista" class="top-margen-lista"></div>
@@ -1775,6 +1809,8 @@ Etiqueta del producto
   productos: [],
   ventasHistorial: [],
   gastos: [],
+  saldoInicial: 0,
+  ajustesBalance: [],    
   nombreTienda: "H-ESSENCE",
   slogan: "Luxury Perfumery RD",
   logo: "",
@@ -2115,10 +2151,11 @@ function registrarAgregadoCarrito() {
       });
 
       const gananciaReal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
-      const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
-      const gananciaNeta = gananciaReal - totalGastos;
-      const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
-
+const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+const saldoInicial = Number(db.saldoInicial || 0);
+const gananciaNeta = gananciaReal - totalGastos;
+const balanceActual = saldoInicial + gananciaReal - totalGastos;
+const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
       const byMargen = [...productos]
         .map(p => ({
           ...p,
@@ -2143,6 +2180,8 @@ function registrarAgregadoCarrito() {
       setText('stat-agotados', agotados);
       setText('stat-gastos-total', formatMoney(totalGastos));
       setText('stat-ganancia-neta', formatMoney(gananciaNeta));
+      setText('stat-saldo-inicial', formatMoney(saldoInicial));
+      setText('stat-balance-actual', formatMoney(balanceActual));
 
       const topBox = document.getElementById('top-margen-lista');
       if (topBox) {
@@ -2471,6 +2510,35 @@ function registrarAgregadoCarrito() {
       await guardarNube(true);
       mostrarAlerta("🗑️ Gasto eliminado", "error");
     }
+    async function guardarSaldoInicial() {
+  if (!esAdmin) return;
+
+  const input = document.getElementById('saldo-inicial-input');
+  if (!input) return;
+
+  const valor = Number(input.value) || 0;
+
+  if (valor < 0) {
+    mostrarAlerta("❌ El saldo inicial no puede ser negativo", "error");
+    return;
+  }
+
+  db.saldoInicial = valor;
+  db._updatedAt = Date.now();
+
+  saveLocal();
+
+  actualizarDashboardAdmin();
+  actualizarResumenVentasPanel();
+
+  const ok = await guardarNube(true);
+
+  if (ok) {
+    mostrarAlerta("💰 Saldo inicial guardado correctamente");
+  } else {
+    mostrarAlerta("⚠️ Saldo guardado localmente");
+  }
+}
 
     function setModoAdmin(on) {
   const user = firebase.auth().currentUser;
@@ -2654,11 +2722,14 @@ function registrarAgregadoCarrito() {
       if(wheelArrowEl) wheelArrowEl.value = db.colorFlecha || "#1A1A1A";
 
       for(let i=0; i<6; i++) {
-        const pInput = document.getElementById('p'+(i+1));
-        const tInput = document.getElementById('t'+(i+1));
-        if(pInput) pInput.value = (db.premios && db.premios[i]) ? db.premios[i] : defaultDB.premios[i];
-        if(tInput) tInput.value = (db.tipos && db.tipos[i]) ? db.tipos[i] : defaultDB.tipos[i];
-      }
+  const pInput = document.getElementById('p'+(i+1));
+  const tInput = document.getElementById('t'+(i+1));
+  if(pInput) pInput.value = (db.premios && db.premios[i]) ? db.premios[i] : defaultDB.premios[i];
+  if(tInput) tInput.value = (db.tipos && db.tipos[i]) ? db.tipos[i] : defaultDB.tipos[i];
+}
+
+const saldoInicialInput = document.getElementById('saldo-inicial-input');
+if (saldoInicialInput) saldoInicialInput.value = Number(db.saldoInicial || 0);
 
       const sLogo = document.getElementById('ctrl-logo-size');
       const sGap = document.getElementById('ctrl-header-gap');
@@ -4190,6 +4261,7 @@ normalizarCategoriasExistentes();
     window.agregarGasto = agregarGasto;
     window.borrarGasto = borrarGasto;
     window.renderGastos = renderGastos;
+    window.guardarSaldoInicial = guardarSaldoInicial;
     window.limpiarFiltrosGastos = limpiarFiltrosGastos;
     window.exportarAExcel = exportarAExcel;
     window.exportarVentasAExcel = exportarVentasAExcel;
