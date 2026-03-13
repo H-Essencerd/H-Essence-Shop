@@ -1511,20 +1511,23 @@ Etiqueta del producto
       </div>
 
       <div class="stats-grid">
-        <div class="stat-card">
-          <small>Gastos de hoy</small>
-          <strong id="gastos-hoy-total">RD$ 0</strong>
-        </div>
-        <div class="stat-card">
-          <small>Gastos de este mes</small>
-          <strong id="gastos-mes-total">RD$ 0</strong>
-        </div>
-        <div class="stat-card">
-          <small>Ganancia mes después de gastos</small>
-          <strong id="gastos-balance-mes">RD$ 0</strong>
-        </div>
-      </div>
-
+  <div class="stat-card">
+    <small>Gastos de hoy</small>
+    <strong id="gastos-hoy-total">RD$ 0</strong>
+  </div>
+  <div class="stat-card">
+    <small>Gastos de este mes</small>
+    <strong id="gastos-mes-total">RD$ 0</strong>
+  </div>
+  <div class="stat-card">
+    <small>Ganancia mes después de gastos</small>
+    <strong id="gastos-balance-mes">RD$ 0</strong>
+  </div>
+  <div class="stat-card stat-card-balance">
+    <small>Balance actual después de gastos</small>
+    <strong id="gastos-balance-actual">RD$ 0</strong>
+  </div>
+</div>
       <div class="calculator-grid" style="margin-top:15px;">
         <div>
           <label class="small-label">Fecha</label>
@@ -2242,6 +2245,10 @@ const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 
       const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
       const gastos = Array.isArray(db.gastos) ? db.gastos : [];
       const hoy = new Date();
+      const saldoInicial = Number(db.saldoInicial || 0);
+      const gananciaRealTotal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
+const gastosTotales = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+const balanceActualGeneral = saldoInicial + gananciaRealTotal - gastosTotales;
 
       let vendidoHoy = 0;
       let gananciaHoy = 0;
@@ -2279,18 +2286,20 @@ const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 
       });
 
       const set = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val;
-      };
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+};
 
-      set('ventas-hoy-total', formatMoney(vendidoHoy));
-      set('ventas-hoy-ganancia', formatMoney(gananciaHoy));
-      set('ventas-mes-total', formatMoney(vendidoMes));
-      set('ventas-mes-ganancia', formatMoney(gananciaMes));
+set('ventas-hoy-total', formatMoney(vendidoHoy));
+set('ventas-hoy-ganancia', formatMoney(gananciaHoy));
+set('ventas-mes-total', formatMoney(vendidoMes));
+set('ventas-mes-ganancia', formatMoney(gananciaMes));
 
-      set('gastos-hoy-total', formatMoney(gastosHoy));
-      set('gastos-mes-total', formatMoney(gastosMes));
-      set('gastos-balance-mes', formatMoney(gananciaMes - gastosMes));
+set('gastos-hoy-total', formatMoney(gastosHoy));
+set('gastos-mes-total', formatMoney(gastosMes));
+set('gastos-balance-mes', formatMoney(gananciaMes - gastosMes));
+set('gastos-balance-actual', formatMoney(balanceActualGeneral));
+  
     }
 
     function limpiarFiltrosVentas() {
