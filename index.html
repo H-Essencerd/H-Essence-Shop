@@ -1210,7 +1210,19 @@
       <button class="btn-mini btn-green" style="width:100%;" onclick="guardarSaldoInicial()">💾 Guardar saldo inicial</button>
     </div>
   </div>
-
+<div class="table-container" style="margin-top:15px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Tipo</th>
+        <th>Monto</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-ajustes-body"></tbody>
+  </table>
+</div>
   <p class="muted" style="margin-top:10px;">
     Este valor representa el dinero que ya tenía el negocio antes de empezar a registrar ventas en la app.
   </p>
@@ -2411,6 +2423,52 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
 
       actualizarResumenVentasPanel();
     }
+    function renderAjustesBalance() {
+  const tbody = document.getElementById('tabla-ajustes-body');
+  if (!tbody) return;
+
+  const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
+
+  if (!ajustes.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="opacity:.7; text-align:center;">No hay ajustes manuales registrados.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = ajustes.map(a => `
+    <tr>
+      <td>${fechaBonita(a.fecha)}</td>
+      <td>${Number(a.monto) >= 0 ? 'Suma' : 'Resta'}</td>
+      <td style="color:${Number(a.monto) >= 0 ? 'green' : 'red'};">
+        ${formatMoney(Math.abs(Number(a.monto) || 0))}
+      </td>
+      <td>
+        ${esAdmin ? `<button onclick="borrarAjusteBalance(${a.id})">🗑️</button>` : '—'}
+      </td>
+    </tr>
+  `).join('');
+}
+    async function borrarAjusteBalance(id) {
+  if (!esAdmin) return;
+
+  const ok = confirm("¿Eliminar este ajuste manual?");
+  if (!ok) return;
+
+  db.ajustesBalance = (db.ajustesBalance || []).filter(a => a.id !== id);
+  db._updatedAt = Date.now();
+
+  saveLocal();
+  actualizarDashboardAdmin();
+  actualizarResumenVentasPanel();
+  renderAjustesBalance();
+
+  await guardarNube(true);
+
+  mostrarAlerta("🗑️ Ajuste eliminado", "error");
+}
 
     function limpiarFiltrosGastos() {
       const desde = document.getElementById('gastos-fecha-desde');
@@ -2607,6 +2665,7 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
 
   actualizarDashboardAdmin();
   actualizarResumenVentasPanel();
+  renderAjustesBalance();
 
   const ok = await guardarNube(true);
 
@@ -2741,6 +2800,7 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
     actualizarDashboardAdmin();
     renderHistorialVentas();
     renderGastos();
+    renderAjustesBalance();
     actualizarResumenTrafico();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
@@ -4314,6 +4374,7 @@ normalizarCategoriasExistentes();
     actualizarDashboardAdmin();
     renderHistorialVentas();
     renderGastos();
+    renderAjustesBalance();
     actualizarResumenTrafico();
     actualizarBotonesAuth();
   } catch (e) {
