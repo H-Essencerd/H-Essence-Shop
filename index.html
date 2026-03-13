@@ -529,6 +529,23 @@
   font-weight: 800;
   color: #111827;
 }
+    .etiqueta-lista{
+  display:inline-block;
+  background:var(--dorado);
+  color:var(--negro);
+  font-size:11px;
+  font-weight:700;
+  padding:3px 10px;
+  border-radius:999px;
+  margin-bottom:6px;
+}
+
+.desc-lista{
+  font-size:12px;
+  color:#64748b;
+  line-height:1.4;
+  margin-bottom:8px;
+}
 
 .btn-add-lista{
   width:36px;
@@ -3709,25 +3726,41 @@ function seleccionarCategoriaFiltro(categoria) {
       const waShare = `https://wa.me/?text=${shareText}`;
 
       if (vistaCatalogo === 'list') {
-        catalogoHTML += `
-          <div class="card card-lista-simple">
-            <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
 
-            <div class="info-lista-simple">
-              <h3>${safeText(p.nombre)}</h3>
-              <div class="meta-lista">
-                ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
-              </div>
-              <p class="precio-lista">${formatMoney(p.venta)}</p>
-            </div>
+  const etiquetaLista = p.etiqueta === 'popular' ? '🔥 Popular' :
+                        p.etiqueta === 'recomendado' ? '⭐ Recomendado' :
+                        p.etiqueta === 'masvendido' ? '🏆 Más vendido' :
+                        p.etiqueta === 'exclusivo' ? '💎 Exclusivo' : '';
 
-            ${db.cartEnabled
-              ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">🛒</button>`
-              : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">🛒</a>`
-            }
-          </div>
-        `;
-      } else {
+  catalogoHTML += `
+    <div class="card card-lista-simple">
+      <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
+
+      <div class="info-lista-simple">
+
+        ${etiquetaLista ? `<div class="etiqueta-lista">${etiquetaLista}</div>` : ''}
+
+        <h3>${safeText(p.nombre)}</h3>
+
+        <div class="meta-lista">
+          ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
+        </div>
+
+        ${p.descripcion ? `<div class="desc-lista">${safeText(p.descripcion)}</div>` : ''}
+
+        <p class="precio-lista">${formatMoney(p.venta)}</p>
+
+      </div>
+
+      ${db.cartEnabled
+        ? `<button class="btn-add-lista" type="button" onclick="addToCart(${p.id})">🛒</button>`
+        : `<a class="btn-add-lista" href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()">🛒</a>`
+      }
+
+    </div>
+  `;
+}      
+      else {
         catalogoHTML += `
           <div class="card">
             ${p.etiqueta ? `<span class="badge-etiqueta">${
