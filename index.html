@@ -1128,7 +1128,7 @@
           <strong id="stat-margen-promedio">0%</strong>
         </div>
         <div class="stat-card">
-          <small>Ganancia real vendida</small>
+          <small>Ganancia total de ventas</small>
           <strong id="stat-ganancia-real">RD$ 0</strong>
         </div>
         <div class="stat-card">
@@ -1142,10 +1142,6 @@
         <div class="stat-card">
           <small>Gastos operativos</small>
           <strong id="stat-gastos-total">RD$ 0</strong>
-        </div>
-        <div class="stat-card">
-          <small>Ganancia neta real</small>
-          <strong id="stat-ganancia-neta">RD$ 0</strong>
         </div>
         <div class="stat-card">
   <small>Saldo inicial del negocio</small>
@@ -1176,14 +1172,39 @@
 
      <div class="panel-subbox" style="margin-top:18px;">
   <div class="section-head">
-    <h4>💰 Ajuste manual de balance</h4>
+    <h4>💰 Balance del negocio</h4>
   </div>
 
   <div class="calculator-grid">
     <div>
       <label class="small-label">Saldo inicial del negocio</label>
       <input type="number" id="saldo-inicial-input" min="0" step="0.01" placeholder="Ej: 15000">
+      </div>
     </div>
+    <div class="panel-subbox" style="margin-top:15px;">
+<h4>➕ Ajuste manual de balance</h4>
+
+<div class="calculator-grid">
+
+<div>
+<label class="small-label">Monto</label>
+<input type="number" id="ajuste-monto" placeholder="Ej: 5000">
+</div>
+
+<div>
+<label class="small-label">Tipo</label>
+<select id="ajuste-tipo">
+<option value="sumar">Sumar dinero</option>
+<option value="restar">Restar dinero</option>
+</select>
+</div>
+
+<div style="display:flex; align-items:end;">
+<button class="btn-mini btn-green" style="width:100%;" onclick="agregarAjusteBalance()">Guardar ajuste</button>
+</div>
+
+</div>
+</div>
 
     <div style="display:flex; align-items:end;">
       <button class="btn-mini btn-green" style="width:100%;" onclick="guardarSaldoInicial()">💾 Guardar saldo inicial</button>
@@ -2150,10 +2171,13 @@ function registrarAgregadoCarrito() {
       });
 
       const gananciaReal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
+const ingresoTotalVentas = ventas.reduce((acc, v) => acc + (Number(v.ingreso) || 0), 0);
 const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
 const saldoInicial = Number(db.saldoInicial || 0);
+const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
+const totalAjustes = ajustes.reduce((acc, a) => acc + (Number(a.monto) || 0), 0);
 const gananciaNeta = gananciaReal - totalGastos;
-const balanceActual = saldoInicial + gananciaReal - totalGastos;
+const balanceActual = saldoInicial + totalAjustes + ingresoTotalVentas - totalGastos;
 const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
       const byMargen = [...productos]
         .map(p => ({
@@ -2242,9 +2266,11 @@ const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 
       const gastos = Array.isArray(db.gastos) ? db.gastos : [];
       const hoy = new Date();
       const saldoInicial = Number(db.saldoInicial || 0);
-      const gananciaRealTotal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
+const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
+const totalAjustes = ajustes.reduce((acc, a) => acc + (Number(a.monto) || 0), 0);
+const ingresoTotalVentas = ventas.reduce((acc, v) => acc + (Number(v.ingreso) || 0), 0);
 const gastosTotales = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
-const balanceActualGeneral = saldoInicial + gananciaRealTotal - gastosTotales;
+const balanceActualGeneral = saldoInicial + totalAjustes + ingresoTotalVentas - gastosTotales;
 
       let vendidoHoy = 0;
       let gananciaHoy = 0;
@@ -2543,6 +2569,51 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
   } else {
     mostrarAlerta("⚠️ Saldo guardado localmente");
   }
+}
+    async function agregarAjusteBalance() {
+
+  if (!esAdmin) return;
+
+  const montoInput = document.getElementById('ajuste-monto');
+  const tipoInput = document.getElementById('ajuste-tipo');
+
+  if (!montoInput || !tipoInput) return;
+
+  let monto = Number(montoInput.value) || 0;
+  const tipo = tipoInput.value;
+
+  if (monto <= 0) {
+    mostrarAlerta("❌ Debes introducir un monto válido", "error");
+    return;
+  }
+
+  if (!Array.isArray(db.ajustesBalance)) {
+    db.ajustesBalance = [];
+  }
+
+  if (tipo === "restar") {
+    monto = monto * -1;
+  }
+
+  db.ajustesBalance.unshift({
+    id: Date.now(),
+    monto: monto,
+    fecha: fechaLocalISO()
+  });
+
+  db._updatedAt = Date.now();
+
+  saveLocal();
+
+  actualizarDashboardAdmin();
+  actualizarResumenVentasPanel();
+
+  const ok = await guardarNube(true);
+
+  montoInput.value = "";
+
+  mostrarAlerta(ok ? "✅ Ajuste guardado" : "⚠️ Ajuste guardado localmente");
+
 }
 
     function setModoAdmin(on) {
@@ -4267,6 +4338,7 @@ normalizarCategoriasExistentes();
     window.borrarGasto = borrarGasto;
     window.renderGastos = renderGastos;
     window.guardarSaldoInicial = guardarSaldoInicial;
+    window.agregarAjusteBalance = agregarAjusteBalance;
     window.limpiarFiltrosGastos = limpiarFiltrosGastos;
     window.exportarAExcel = exportarAExcel;
     window.exportarVentasAExcel = exportarVentasAExcel;
