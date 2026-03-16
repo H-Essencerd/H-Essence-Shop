@@ -1647,8 +1647,11 @@ Etiqueta del producto
 
     <div class="admin-box">
       <div class="section-head">
-        <h4>🧾 Historial de facturas</h4>
+  <h4>🧾 Historial de facturas</h4>
+  <div class="section-actions">
+    <button class="btn-mini btn-excel" onclick="exportarFacturasAExcel()">📄 Exportar facturas</button>
   </div>
+</div>
 
   <div class="calculator-grid" style="margin-top:15px;">
     <div>
@@ -3756,6 +3759,105 @@ if (etiquetaSelect) etiquetaSelect.value = p.etiqueta || "";
       XLSX.writeFile(wb, "H-Essence_Gastos.xlsx");
     }
 
+    function exportarFacturasAExcel() {
+  const facturas = Array.isArray(db.facturas) ? db.facturas : [];
+  if (!facturas.length) return alert("No hay facturas registradas");
+
+  const desdeVal = document.getElementById('facturas-fecha-desde')?.value || "";
+  const hastaVal = document.getElementById('facturas-fecha-hasta')?.value || "";
+  const busquedaVal = normalizeText(document.getElementById('facturas-busqueda')?.value || "");
+
+  let desde = null;
+  let hasta = null;
+
+  if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
+  if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
+
+  const filtradas = facturas.filter(f => {
+    const fecha = new Date(`${f.fecha}T12:00:00`);
+    if (isNaN(fecha)) return false;
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+
+    if (busquedaVal) {
+      const productosTexto = (f.items || [])
+        .map(i => `${i.nombre} ${i.referencia} ${i.categoria || ""}`)
+        .join(" ");
+
+      const texto = normalizeText([
+        f.numero,
+        f.cliente,
+        f.nota,
+        productosTexto
+      ].join(" "));
+
+      if (!texto.includes(busquedaVal)) return false;
+    }
+
+    return true;
+  });
+
+  if (!filtradas.length) {
+    return alert("No hay facturas para exportar con ese filtro");
+  }
+
+  const data = [];
+
+  filtradas.forEach(f => {
+    const items = Array.isArray(f.items) ? f.items : [];
+
+    if (!items.length) {
+      data.push({
+        Fecha: f.fecha || "",
+        Factura: f.numero || "",
+        Cliente: f.cliente || "Consumidor final",
+        Ref: "",
+        Producto: "",
+        Categoria: "",
+        Tamaño: "",
+        Cantidad: 0,
+        PrecioUnitario: 0,
+        DescuentoItem: 0,
+        TipoDescuentoItem: "",
+        SubtotalFactura: Number(f.subtotal || 0),
+        DescuentoFactura: Number(f.descuentoTotal || 0),
+        TotalFactura: Number(f.total || 0),
+        GananciaFactura: Number(f.ganancia || 0),
+        TipoSalidaGeneral: f.tipoSalida || "venta_normal",
+        Nota: f.nota || ""
+      });
+      return;
+    }
+
+    items.forEach((item, index) => {
+      data.push({
+        Fecha: index === 0 ? (f.fecha || "") : "",
+        Factura: index === 0 ? (f.numero || "") : "",
+        Cliente: index === 0 ? (f.cliente || "Consumidor final") : "",
+        Ref: item.referencia || "",
+        Producto: item.nombre || "",
+        Categoria: item.categoria || "",
+        Tamaño: item.onzas || "",
+        Cantidad: Number(item.cantidad || 0),
+        PrecioUnitario: Number(item.precioUnitario || 0),
+        DescuentoItem: Number(item.descuento || 0),
+        TipoDescuentoItem: item.tipoDescuento || "ninguno",
+        SubtotalFactura: index === 0 ? Number(f.subtotal || 0) : "",
+        DescuentoFactura: index === 0 ? Number(f.descuentoTotal || 0) : "",
+        TotalFactura: index === 0 ? Number(f.total || 0) : "",
+        GananciaFactura: index === 0 ? Number(f.ganancia || 0) : "",
+        TipoSalidaGeneral: index === 0 ? (f.tipoSalida || "venta_normal") : "",
+        Nota: index === 0 ? (f.nota || "") : ""
+      });
+    });
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Facturas");
+  XLSX.writeFile(wb, "H-Essence_Facturas.xlsx");
+}
+
     function partirTextoEnLineas(ctx, texto, maxWidth) {
       const palabras = String(texto || "").split(" ");
       const lineas = [];
@@ -4580,16 +4682,17 @@ function agregarItemFactura() {
     itemExistente.tipoDescuento = tipoDescuento;
   } else {
     facturaActual.items.push({
-      productoId: producto.id,
-      referencia: producto.ref,
-      nombre: producto.nombre,
-      categoria: producto.categoria || "General",
-      cantidad,
-      precioUnitario: Number(producto.venta) || 0,
-      costoUnitario: Number(producto.costo) || 0,
-      descuento,
-      tipoDescuento
-    });
+  productoId: producto.id,
+  referencia: producto.ref,
+  nombre: producto.nombre,
+  categoria: producto.categoria || "General",
+  onzas: producto.onzas || "N/A",
+  cantidad,
+  precioUnitario: Number(producto.venta) || 0,
+  costoUnitario: Number(producto.costo) || 0,
+  descuento,
+  tipoDescuento
+});
   }
 
   document.getElementById('factura-item-cantidad').value = 1;
@@ -5164,6 +5267,7 @@ normalizarCategoriasExistentes();
     window.exportarAExcel = exportarAExcel;
     window.exportarVentasAExcel = exportarVentasAExcel;
     window.exportarGastosAExcel = exportarGastosAExcel;
+    window.exportarFacturasAExcel = exportarFacturasAExcel;
     window.subirLogo = subirLogo;
     window.handleFile = handleFile;
     window.quitarFoto = quitarFoto;
