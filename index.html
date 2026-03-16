@@ -1475,8 +1475,11 @@ Etiqueta del producto
 
     <div class="admin-box">
       <div class="section-head">
-        <h4>🧾 Historial de salidas</h4>
-      </div>
+  <h4>🧾 Historial de salidas</h4>
+  <div class="section-actions">
+    <button class="btn-mini btn-green" type="button" onclick="abrirModalFactura()">➕ Nueva factura</button>
+  </div>
+</div>
 
       <div class="stats-grid">
         <div class="stat-card">
@@ -1537,7 +1540,7 @@ Etiqueta del producto
         </table>
       </div>
     </div>
-
+    
     <div class="admin-box">
       <div class="section-head">
         <h4>💸 Gastos del negocio</h4>
@@ -1624,8 +1627,50 @@ Etiqueta del producto
         </table>
       </div>
     </div>
+
+    <div class="admin-box">
+      <div class="section-head">
+        <h4>🧾 Historial de facturas</h4>
   </div>
 
+  <div class="calculator-grid" style="margin-top:15px;">
+    <div>
+      <label class="small-label">Buscar factura</label>
+      <input type="text" id="facturas-busqueda" placeholder="Número, cliente, producto..." oninput="renderFacturas()">
+    </div>
+    <div>
+      <label class="small-label">Desde</label>
+      <input type="date" id="facturas-fecha-desde" onchange="renderFacturas()">
+    </div>
+    <div>
+      <label class="small-label">Hasta</label>
+      <input type="date" id="facturas-fecha-hasta" onchange="renderFacturas()">
+    </div>
+    <div style="display:flex; align-items:end;">
+      <button class="btn-mini btn-gray" style="width:100%;" onclick="limpiarFiltrosFacturas()">Limpiar filtros</button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Factura</th>
+          <th>Cliente</th>
+          <th>Items</th>
+          <th>Total</th>
+          <th>Ganancia</th>
+          <th>Nota</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-facturas-body"></tbody>
+    </table>
+  </div>
+  </div>
+
+    </div>
   <div id="seccion-cliente">
     <div id="box-ruleta-cliente" class="ruleta-box">
       <div class="canvas-container">
@@ -1791,7 +1836,137 @@ Etiqueta del producto
       </div>
     </div>
   </div>
+<div id="modal-factura" class="modal-backdrop">
+  <div class="modal-box" style="width:min(980px, 100%);">
+    <div class="modal-head">
+      <b id="titulo-modal-factura">🧾 Nueva factura</b>
+      <button type="button" onclick="cerrarModalFactura()">✕</button>
+    </div>
 
+    <div class="modal-body">
+      <div class="calculator-grid">
+        <div>
+          <label class="small-label">No. factura</label>
+          <input type="text" id="factura-numero" readonly>
+        </div>
+        <div>
+          <label class="small-label">Fecha</label>
+          <input type="date" id="factura-fecha">
+        </div>
+        <div>
+          <label class="small-label">Cliente</label>
+          <input type="text" id="factura-cliente" placeholder="Ej: Joel Henríquez">
+        </div>
+      </div>
+
+      <div class="panel-subbox">
+        <div class="section-head">
+          <h4>➕ Agregar producto a la factura</h4>
+        </div>
+
+        <div class="calculator-grid">
+          <div>
+            <label class="small-label">Producto</label>
+            <select id="factura-producto-select"></select>
+          </div>
+          <div>
+            <label class="small-label">Cantidad</label>
+            <input type="number" id="factura-item-cantidad" min="1" value="1">
+          </div>
+          <div>
+            <label class="small-label">Descuento por item</label>
+            <input type="number" id="factura-item-descuento" min="0" step="0.01" value="0">
+          </div>
+          <div>
+            <label class="small-label">Tipo descuento item</label>
+            <select id="factura-item-tipo-descuento">
+              <option value="ninguno">Sin descuento</option>
+              <option value="porcentaje">Porcentaje %</option>
+              <option value="valor">Valor RD$</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:end;">
+            <button class="btn-mini btn-green" type="button" style="width:100%;" onclick="agregarItemFactura()">Agregar a factura</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-subbox">
+        <div class="section-head">
+          <h4>📦 Items de la factura</h4>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Producto</th>
+                <th>Ref</th>
+                <th>Cant.</th>
+                <th>Precio</th>
+                <th>Desc.</th>
+                <th>Total</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-factura-items-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel-subbox">
+        <div class="section-head">
+          <h4>💸 Ajuste general de factura</h4>
+        </div>
+
+        <div class="calculator-grid">
+          <div>
+            <label class="small-label">Tipo de salida general</label>
+            <select id="factura-tipo-salida" onchange="recalcularFacturaActual()">
+              <option value="venta_normal">Venta normal</option>
+              <option value="descuento_porcentaje">Descuento %</option>
+              <option value="descuento_valor">Descuento RD$</option>
+              <option value="regalo">Regalo</option>
+              <option value="premio">Premio / Promoción</option>
+            </select>
+          </div>
+          <div>
+            <label class="small-label">Valor descuento general</label>
+            <input type="number" id="factura-descuento-general" min="0" step="0.01" value="0" oninput="recalcularFacturaActual()">
+          </div>
+          <div style="grid-column:1 / -1;">
+            <label class="small-label">Nota</label>
+            <textarea id="factura-nota" rows="2" placeholder="Ej: cliente VIP, venta especial, regalo, promoción..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="calculator-grid">
+        <div class="calc-result">
+          <small>Subtotal</small>
+          <strong id="factura-subtotal">RD$ 0</strong>
+        </div>
+        <div class="calc-result">
+          <small>Descuento total</small>
+          <strong id="factura-descuento-total">RD$ 0</strong>
+        </div>
+        <div class="calc-result">
+          <small>Total factura</small>
+          <strong id="factura-total">RD$ 0</strong>
+        </div>
+        <div class="calc-result">
+          <small>Ganancia estimada</small>
+          <strong id="factura-ganancia">RD$ 0</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-mini btn-gray" type="button" onclick="cerrarModalFactura()">Cancelar</button>
+      <button class="btn-mini btn-green" type="button" onclick="guardarFactura()">Guardar factura</button>
+    </div>
+  </div>
+</div>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
@@ -1836,10 +2011,14 @@ Etiqueta del producto
     let anularVentaPendienteId = null;
     let renderTimerAdmin = null;
     let renderTimerCliente = null;
+    let facturaActual = null;
+    let facturaEditandoId = null;
 
     const defaultDB = {
   productos: [],
   ventasHistorial: [],
+  facturas: [],
+  contadorFacturas: 1, 
   gastos: [],
   saldoInicial: 0,
   ajustesBalance: [],    
@@ -1928,6 +2107,14 @@ Etiqueta del producto
     function formatMoney(n) {
       return `RD$ ${Number(n || 0).toLocaleString('es-DO', { maximumFractionDigits: 2 })}`;
     }
+    function generarNumeroFactura() {
+  const numero = Number(db.contadorFacturas || 1);
+  return `FAC-${String(numero).padStart(5, '0')}`;
+}
+
+function avanzarContadorFactura() {
+  db.contadorFacturas = Number(db.contadorFacturas || 1) + 1;
+}
 
     function fechaLocalISO() {
       const d = new Date();
@@ -2702,6 +2889,7 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
   renderHistorialVentas();
   renderGastos();
   renderAjustesBalance();
+  renderFacturas();
   actualizarResumenTrafico();
 }
 
@@ -2782,9 +2970,11 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
     db = { ...structuredClone(defaultDB), ...data };
 
     if (!Array.isArray(db.productos)) db.productos = [];
-    if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-    if (!Array.isArray(db.gastos)) db.gastos = [];
-    if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+if (!Array.isArray(db.facturas)) db.facturas = [];
+if (!Array.isArray(db.gastos)) db.gastos = [];
+if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+if (!Number.isFinite(Number(db.contadorFacturas))) db.contadorFacturas = 1;
     db.visitasTotales = Number(db.visitasTotales || 0);
     db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
     db.agregadosCarrito = Number(db.agregadosCarrito || 0);
@@ -2801,6 +2991,7 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
     renderHistorialVentas();
     renderGastos();
     renderAjustesBalance();
+    renderFacturas();
     actualizarResumenTrafico();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
@@ -3712,7 +3903,10 @@ if (etiquetaSelect) etiquetaSelect.value = p.etiqueta || "";
 
       const canvas = document.getElementById('canvas-ruleta');
       const btn = document.getElementById('btn-girar');
-      if (!canvas || !btn) return;
+      if (!canvas || !btn) {
+  estaGirando = false;
+  return;
+}
 
       btn.disabled = true;
 
@@ -4204,7 +4398,525 @@ function seleccionarCategoriaFiltro(categoria) {
 }
       window.open(`https://wa.me/${TEL_WHATSAPP}?text=${msg}`, "_blank");
     }
+    function abrirModalFactura(id = null) {
+      if (!esAdmin) return;
+      const titulo = document.getElementById("titulo-modal-factura");
 
+if (titulo) {
+  if (id) {
+    const factura = (db.facturas || []).find(f => f.id === id);
+    const numero = factura?.numero || "";
+    titulo.textContent = `✏️ Editar factura #${numero}`;
+  } else {
+    titulo.textContent = "🧾 Nueva factura";
+  }
+}
+
+  if (!Array.isArray(db.facturas)) db.facturas = [];
+  if (!Array.isArray(db.productos)) db.productos = [];
+
+  facturaEditandoId = id || null;
+
+  if (id) {
+    const factura = db.facturas.find(f => f.id === id);
+    if (!factura) {
+      mostrarAlerta("❌ No se encontró la factura", "error");
+      return;
+    }
+
+    facturaActual = JSON.parse(JSON.stringify(factura));
+
+    const fechaInput = document.getElementById('factura-fecha');
+    const clienteInput = document.getElementById('factura-cliente');
+    const numeroInput = document.getElementById('factura-numero');
+    const tipoInput = document.getElementById('factura-tipo-salida');
+    const descuentoInput = document.getElementById('factura-descuento-general');
+    const notaInput = document.getElementById('factura-nota');
+
+    if (numeroInput) numeroInput.value = factura.numero || "";
+    if (fechaInput) fechaInput.value = safeText(factura.fecha || "").slice(0, 10);
+    if (clienteInput) clienteInput.value = factura.cliente || "";
+    if (tipoInput) tipoInput.value = factura.tipoSalida || "venta_normal";
+    if (descuentoInput) descuentoInput.value = Number(factura.descuentoGeneral || 0);
+    if (notaInput) notaInput.value = factura.nota || "";
+  } else {
+    facturaActual = {
+      id: Date.now() + Math.floor(Math.random() * 10000),
+      numero: generarNumeroFactura(),
+      fecha: fechaSoloISO(),
+      cliente: "",
+      items: [],
+      tipoSalida: "venta_normal",
+      descuentoGeneral: 0,
+      subtotal: 0,
+      descuentoTotal: 0,
+      total: 0,
+      ganancia: 0,
+      nota: ""
+    };
+
+    const fechaInput = document.getElementById('factura-fecha');
+    const clienteInput = document.getElementById('factura-cliente');
+    const numeroInput = document.getElementById('factura-numero');
+    const tipoInput = document.getElementById('factura-tipo-salida');
+    const descuentoInput = document.getElementById('factura-descuento-general');
+    const notaInput = document.getElementById('factura-nota');
+
+    if (numeroInput) numeroInput.value = facturaActual.numero;
+    if (fechaInput) fechaInput.value = facturaActual.fecha;
+    if (clienteInput) clienteInput.value = "";
+    if (tipoInput) tipoInput.value = "venta_normal";
+    if (descuentoInput) descuentoInput.value = 0;
+    if (notaInput) notaInput.value = "";
+  }
+
+  cargarProductosEnSelectorFactura();
+  renderFacturaItems();
+  recalcularFacturaActual();
+
+  const modal = document.getElementById('modal-factura');
+  if (modal) modal.style.display = 'flex';
+}
+
+function cerrarModalFactura() {
+  facturaActual = null;
+  facturaEditandoId = null;
+  const modal = document.getElementById('modal-factura');
+  if (modal) modal.style.display = 'none';
+}
+
+function cargarProductosEnSelectorFactura() {
+  const select = document.getElementById('factura-producto-select');
+  if (!select) return;
+
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+
+  if (!productos.length) {
+    select.innerHTML = `<option value="">No hay productos</option>`;
+    return;
+  }
+
+  select.innerHTML = productos.map(p => `
+    <option value="${p.id}">
+      ${safeText(p.nombre)} (${safeText(p.ref)}) - Stock: ${Number(p.stock) || 0} - ${formatMoney(p.venta || 0)}
+    </option>
+  `).join('');
+}
+
+function agregarItemFactura() {
+  if (!facturaActual) return;
+
+  const productoId = Number(document.getElementById('factura-producto-select')?.value || 0);
+  const cantidad = Number(document.getElementById('factura-item-cantidad')?.value || 0);
+  const descuento = Number(document.getElementById('factura-item-descuento')?.value || 0);
+  const tipoDescuento = document.getElementById('factura-item-tipo-descuento')?.value || "ninguno";
+
+  if (!productoId) {
+    mostrarAlerta("❌ Debes seleccionar un producto", "error");
+    return;
+  }
+
+  if (cantidad <= 0) {
+    mostrarAlerta("❌ Cantidad inválida", "error");
+    return;
+  }
+
+  const producto = (db.productos || []).find(p => p.id === productoId);
+  if (!producto) {
+    mostrarAlerta("❌ Producto no encontrado", "error");
+    return;
+  }
+
+  const itemExistente = facturaActual.items.find(i => i.productoId === producto.id);
+
+  if (itemExistente) {
+    itemExistente.cantidad += cantidad;
+    itemExistente.descuento = descuento;
+    itemExistente.tipoDescuento = tipoDescuento;
+  } else {
+    facturaActual.items.push({
+      productoId: producto.id,
+      referencia: producto.ref,
+      nombre: producto.nombre,
+      categoria: producto.categoria || "General",
+      cantidad,
+      precioUnitario: Number(producto.venta) || 0,
+      costoUnitario: Number(producto.costo) || 0,
+      descuento,
+      tipoDescuento
+    });
+  }
+
+  document.getElementById('factura-item-cantidad').value = 1;
+  document.getElementById('factura-item-descuento').value = 0;
+  document.getElementById('factura-item-tipo-descuento').value = "ninguno";
+
+  renderFacturaItems();
+  recalcularFacturaActual();
+}
+
+function eliminarItemFactura(index) {
+  if (!facturaActual) return;
+  facturaActual.items.splice(index, 1);
+  renderFacturaItems();
+  recalcularFacturaActual();
+}
+
+function renderFacturaItems() {
+  const tbody = document.getElementById('tabla-factura-items-body');
+  if (!tbody) return;
+
+  if (!facturaActual || !Array.isArray(facturaActual.items) || !facturaActual.items.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="opacity:.7; text-align:center;">No hay productos agregados.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = facturaActual.items.map((item, index) => {
+    let descuentoAplicado = 0;
+    const base = Number(item.precioUnitario) || 0;
+
+    if (item.tipoDescuento === "porcentaje") {
+      descuentoAplicado = base * (Number(item.descuento || 0) / 100);
+    } else if (item.tipoDescuento === "valor") {
+      descuentoAplicado = Number(item.descuento || 0);
+    }
+
+    const precioFinal = Math.max(0, base - descuentoAplicado);
+    const total = precioFinal * (Number(item.cantidad) || 0);
+
+    const descTexto =
+      item.tipoDescuento === "porcentaje" ? `${Number(item.descuento || 0)}%` :
+      item.tipoDescuento === "valor" ? formatMoney(item.descuento || 0) :
+      "—";
+
+    return `
+      <tr>
+        <td>${safeText(item.nombre)}</td>
+        <td>${safeText(item.referencia)}</td>
+        <td>${Number(item.cantidad) || 0}</td>
+        <td>${formatMoney(base)}</td>
+        <td>${descTexto}</td>
+        <td>${formatMoney(total)}</td>
+        <td><button onclick="eliminarItemFactura(${index})">🗑️</button></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function guardarFactura() {
+  if (!esAdmin || !facturaActual) return;
+
+  if (!Array.isArray(facturaActual.items) || !facturaActual.items.length) {
+    mostrarAlerta("❌ Debes agregar al menos un producto", "error");
+    return;
+  }
+
+    const productosTrabajo = JSON.parse(JSON.stringify(db.productos || []));
+  const productosMap = new Map(productosTrabajo.map(p => [p.id, p]));
+  const facturaAnterior = facturaEditandoId
+    ? (db.facturas || []).find(f => f.id === facturaEditandoId)
+    : null;
+
+  // 1. Si estoy editando, primero devuelvo al stock los productos de la factura anterior
+  if (facturaAnterior && Array.isArray(facturaAnterior.items)) {
+    facturaAnterior.items.forEach(item => {
+      const producto = productosMap.get(item.productoId);
+      if (producto) {
+        producto.stock = (Number(producto.stock) || 0) + (Number(item.cantidad) || 0);
+        producto.ventasAcumuladas = Math.max(
+          0,
+          (Number(producto.ventasAcumuladas) || 0) - (Number(item.cantidad) || 0)
+        );
+      }
+    });
+  }
+
+  // 2. Validar stock ya con la factura anterior devuelta
+  for (const item of facturaActual.items) {
+    const producto = productosMap.get(item.productoId);
+
+    if (!producto) {
+      mostrarAlerta(`❌ Producto no encontrado: ${item.nombre}`, "error");
+      return;
+    }
+
+    const cantidadNecesaria = Number(item.cantidad) || 0;
+    const stockDisponible = Number(producto.stock) || 0;
+
+    if (cantidadNecesaria <= 0) {
+      mostrarAlerta(`❌ Cantidad inválida para ${item.nombre}`, "error");
+      return;
+    }
+
+    if (cantidadNecesaria > stockDisponible) {
+      mostrarAlerta(`❌ Stock insuficiente para ${item.nombre}`, "error");
+      return;
+    }
+  }
+
+  // 3. Aplicar la nueva factura
+  for (const item of facturaActual.items) {
+    const producto = productosMap.get(item.productoId);
+    if (producto) {
+      producto.stock = (Number(producto.stock) || 0) - (Number(item.cantidad) || 0);
+      producto.ventasAcumuladas = (Number(producto.ventasAcumuladas) || 0) + (Number(item.cantidad) || 0);
+      producto.ultimaActualizacion = fechaLocalISO();
+    }
+  }
+
+  // 4. Solo aquí actualizo la base real
+  db.productos = productosTrabajo;
+  if (!Array.isArray(db.facturas)) db.facturas = [];
+  if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
+
+  const facturaFinal = {
+    ...facturaActual,
+    fechaGuardado: fechaLocalISO()
+  };
+
+  if (facturaEditandoId) {
+    const idx = db.facturas.findIndex(f => f.id === facturaEditandoId);
+    if (idx >= 0) db.facturas[idx] = facturaFinal;
+  } else {
+    db.facturas.unshift(facturaFinal);
+    avanzarContadorFactura();
+  }
+
+  db.ventasHistorial = db.ventasHistorial.filter(v => v.facturaId !== facturaFinal.id);
+
+    const subtotalFactura = Number(facturaFinal.subtotal || 0);
+  const descuentoGeneralFactura = Number(facturaFinal.descuentoTotal || 0);
+
+  facturaFinal.items.forEach(item => {
+    let descuentoItem = 0;
+
+    if (item.tipoDescuento === "porcentaje") {
+      descuentoItem = (Number(item.precioUnitario) || 0) * (Number(item.descuento || 0) / 100);
+    } else if (item.tipoDescuento === "valor") {
+      descuentoItem = Number(item.descuento || 0);
+    }
+
+    const precioBaseUnitario = Number(item.precioUnitario) || 0;
+    const cantidad = Number(item.cantidad) || 0;
+    const costoUnitario = Number(item.costoUnitario) || 0;
+
+    const precioTrasDescuentoItem = Math.max(0, precioBaseUnitario - descuentoItem);
+    const totalItemAntesDescuentoGeneral = precioTrasDescuentoItem * cantidad;
+
+    let descuentoGeneralProporcional = 0;
+    if (subtotalFactura > 0) {
+      descuentoGeneralProporcional = (totalItemAntesDescuentoGeneral / subtotalFactura) * descuentoGeneralFactura;
+    }
+
+    const ingreso = Math.max(0, totalItemAntesDescuentoGeneral - descuentoGeneralProporcional);
+    const precioFinalUnitario = cantidad > 0 ? ingreso / cantidad : 0;
+    const ganancia = (precioFinalUnitario - costoUnitario) * cantidad;
+
+    db.ventasHistorial.unshift({
+      id: Date.now() + Math.floor(Math.random() * 10000) + Math.floor(Math.random() * 999),
+      facturaId: facturaFinal.id,
+      numeroFactura: facturaFinal.numero,
+      productoId: item.productoId,
+      referencia: item.referencia,
+      nombre: item.nombre,
+      categoria: item.categoria || "General",
+      cantidad,
+      tipoSalida: facturaFinal.tipoSalida || "venta_normal",
+      descuentoValor: item.descuento || 0,
+      descuentoAplicadoUnitario: descuentoItem,
+      precioBaseUnitario,
+      precioFinalUnitario,
+      costoUnitario,
+      ingreso,
+      ganancia,
+      nota: facturaFinal.nota || "",
+      fecha: `${facturaFinal.fecha}T12:00:00`
+    });
+  });
+  db._updatedAt = Date.now();
+  saveLocal();
+  render();
+  renderFacturas();
+  renderHistorialVentas();
+  actualizarDashboardAdmin();
+  actualizarResumenVentasPanel();
+
+  const eraEdicion = !!facturaEditandoId;
+
+  await guardarNube(true);
+
+  cerrarModalFactura();
+  mostrarAlerta(eraEdicion ? "✅ Factura actualizada" : "✅ Factura guardada");
+}
+
+function renderFacturas() {
+  const tbody = document.getElementById('tabla-facturas-body');
+  if (!tbody) return;
+
+  const facturas = Array.isArray(db.facturas) ? db.facturas : [];
+  const desdeVal = document.getElementById('facturas-fecha-desde')?.value || "";
+  const hastaVal = document.getElementById('facturas-fecha-hasta')?.value || "";
+  const busquedaVal = normalizeText(document.getElementById('facturas-busqueda')?.value || "");
+
+  let desde = null;
+  let hasta = null;
+
+  if (desdeVal) desde = new Date(`${desdeVal}T00:00:00`);
+  if (hastaVal) hasta = new Date(`${hastaVal}T23:59:59`);
+
+  const filtradas = facturas.filter(f => {
+    const fecha = new Date(`${f.fecha}T12:00:00`);
+    if (isNaN(fecha)) return false;
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+
+    if (busquedaVal) {
+      const productosTexto = (f.items || []).map(i => `${i.nombre} ${i.referencia}`).join(" ");
+      const texto = normalizeText([f.numero, f.cliente, f.nota, productosTexto].join(" "));
+      if (!texto.includes(busquedaVal)) return false;
+    }
+
+    return true;
+  });
+
+  if (!filtradas.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="opacity:.7; text-align:center;">No hay facturas registradas.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = filtradas.map(f => `
+    <tr>
+      <td>${f.fecha}</td>
+      <td><b>${safeText(f.numero)}</b></td>
+      <td>${safeText(f.cliente || "Consumidor final")}</td>
+      <td>${(f.items || []).length}</td>
+      <td>${formatMoney(f.total || 0)}</td>
+      <td style="color:green;">${formatMoney(f.ganancia || 0)}</td>
+      <td>${safeText(f.nota || "—")}</td>
+      <td>
+        <button onclick="abrirModalFactura(${f.id})">✏️</button>
+        <button onclick="eliminarFactura(${f.id})">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+    function recalcularFacturaActual() {
+  if (!facturaActual) return;
+
+  facturaActual.tipoSalida = document.getElementById('factura-tipo-salida')?.value || "venta_normal";
+  facturaActual.descuentoGeneral = Number(document.getElementById('factura-descuento-general')?.value || 0);
+  facturaActual.nota = safeText(document.getElementById('factura-nota')?.value || "").trim();
+  facturaActual.fecha = document.getElementById('factura-fecha')?.value || fechaSoloISO();
+  facturaActual.cliente = safeText(document.getElementById('factura-cliente')?.value || "").trim();
+
+  let subtotal = 0;
+
+  (facturaActual.items || []).forEach(item => {
+    const cantidad = Number(item.cantidad) || 0;
+    const base = Number(item.precioUnitario) || 0;
+
+    let descuentoItem = 0;
+
+    if (item.tipoDescuento === "porcentaje") {
+      descuentoItem = base * (Number(item.descuento || 0) / 100);
+    } else if (item.tipoDescuento === "valor") {
+      descuentoItem = Number(item.descuento || 0);
+    }
+
+    const finalUnit = Math.max(0, base - descuentoItem);
+    subtotal += finalUnit * cantidad;
+  });
+
+  let descuentoGeneralAplicado = 0;
+  let total = subtotal;
+
+  if (facturaActual.tipoSalida === "descuento_porcentaje") {
+    descuentoGeneralAplicado = subtotal * (facturaActual.descuentoGeneral / 100);
+    total = Math.max(0, subtotal - descuentoGeneralAplicado);
+  } else if (facturaActual.tipoSalida === "descuento_valor") {
+    descuentoGeneralAplicado = facturaActual.descuentoGeneral;
+    total = Math.max(0, subtotal - descuentoGeneralAplicado);
+  } else if (facturaActual.tipoSalida === "regalo" || facturaActual.tipoSalida === "premio") {
+    descuentoGeneralAplicado = subtotal;
+    total = 0;
+  }
+
+  const costoTotal = (facturaActual.items || []).reduce((acc, item) => {
+    return acc + ((Number(item.costoUnitario) || 0) * (Number(item.cantidad) || 0));
+  }, 0);
+
+  facturaActual.subtotal = subtotal;
+  facturaActual.descuentoTotal = descuentoGeneralAplicado;
+  facturaActual.total = total;
+  facturaActual.ganancia = total - costoTotal;
+
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  set('factura-subtotal', formatMoney(facturaActual.subtotal));
+  set('factura-descuento-total', formatMoney(facturaActual.descuentoTotal));
+  set('factura-total', formatMoney(facturaActual.total));
+  set('factura-ganancia', formatMoney(facturaActual.ganancia));
+}
+
+function limpiarFiltrosFacturas() {
+  const desde = document.getElementById('facturas-fecha-desde');
+  const hasta = document.getElementById('facturas-fecha-hasta');
+  const busqueda = document.getElementById('facturas-busqueda');
+
+  if (desde) desde.value = "";
+  if (hasta) hasta.value = "";
+  if (busqueda) busqueda.value = "";
+
+  renderFacturas();
+}
+
+async function eliminarFactura(id) {
+  if (!esAdmin) return;
+
+  const ok = confirm("¿Eliminar esta factura?");
+  if (!ok) return;
+
+  const factura = (db.facturas || []).find(f => f.id === id);
+  if (!factura) {
+    mostrarAlerta("❌ Factura no encontrada", "error");
+    return;
+  }
+
+  factura.items.forEach(item => {
+    const producto = (db.productos || []).find(p => p.id === item.productoId);
+    if (producto) {
+      producto.stock = (Number(producto.stock) || 0) + (Number(item.cantidad) || 0);
+      producto.ventasAcumuladas = Math.max(0, (Number(producto.ventasAcumuladas) || 0) - (Number(item.cantidad) || 0));
+      producto.ultimaActualizacion = fechaLocalISO();
+    }
+  });
+
+  db.facturas = (db.facturas || []).filter(f => f.id !== id);
+  db.ventasHistorial = (db.ventasHistorial || []).filter(v => v.facturaId !== id);
+
+  db._updatedAt = Date.now();
+  saveLocal();
+  render();
+  renderFacturas();
+  renderHistorialVentas();
+  actualizarDashboardAdmin();
+  actualizarResumenVentasPanel();
+
+  await guardarNube(true);
+
+  mostrarAlerta("🗑️ Factura eliminada", "error");
+}
     function activarDragDrop() {
       const dropZone = document.getElementById('drop-zone');
       if (!dropZone) return;
@@ -4309,9 +5021,11 @@ function seleccionarCategoriaFiltro(categoria) {
     window.addEventListener('load', async () => {
   try {
     if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-    if (!Array.isArray(db.productos)) db.productos = [];
-    if (!Array.isArray(db.gastos)) db.gastos = [];
-    if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+if (!Array.isArray(db.productos)) db.productos = [];
+if (!Array.isArray(db.facturas)) db.facturas = [];
+if (!Array.isArray(db.gastos)) db.gastos = [];
+if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+if (!Number.isFinite(Number(db.contadorFacturas))) db.contadorFacturas = 1;
     db.visitasTotales = Number(db.visitasTotales || 0);
     db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
     db.agregadosCarrito = Number(db.agregadosCarrito || 0);
@@ -4331,6 +5045,7 @@ normalizarCategoriasExistentes();
     toggleClearCategoria();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
+    renderFacturas();
 
     const btnLogout = document.getElementById('btn-logout-admin');
     if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
@@ -4429,6 +5144,17 @@ normalizarCategoriasExistentes();
     window.registrarAgregadoCarrito = registrarAgregadoCarrito;
     window.actualizarResumenTrafico = actualizarResumenTrafico;
     window.seleccionarCategoriaFiltro = seleccionarCategoriaFiltro;
+    window.abrirModalFactura = abrirModalFactura;
+    window.cerrarModalFactura = cerrarModalFactura;
+    window.cargarProductosEnSelectorFactura = cargarProductosEnSelectorFactura;
+    window.agregarItemFactura = agregarItemFactura;
+    window.eliminarItemFactura = eliminarItemFactura;
+    window.renderFacturaItems = renderFacturaItems;
+    window.recalcularFacturaActual = recalcularFacturaActual;
+    window.guardarFactura = guardarFactura;
+    window.renderFacturas = renderFacturas;
+    window.limpiarFiltrosFacturas = limpiarFiltrosFacturas;
+    window.eliminarFactura = eliminarFactura;
     function toggleInventario() {
   const box = document.getElementById('inventario-wrap');
   if (!box) return;
@@ -4488,6 +5214,15 @@ window.toggleClearSearch = toggleClearSearch;
 window.limpiarBusquedaCliente = limpiarBusquedaCliente;
 window.toggleClearCategoria = toggleClearCategoria;
 window.limpiarCategoriaCliente = limpiarCategoriaCliente;
+window.cargarProductosEnSelectorFactura = cargarProductosEnSelectorFactura;
+window.agregarItemFactura = agregarItemFactura;
+window.eliminarItemFactura = eliminarItemFactura;
+window.renderFacturaItems = renderFacturaItems;
+window.recalcularFacturaActual = recalcularFacturaActual;
+window.guardarFactura = guardarFactura;
+window.renderFacturas = renderFacturas;
+window.limpiarFiltrosFacturas = limpiarFiltrosFacturas;
+window.eliminarFactura = eliminarFactura;
   </script>
 </body>
 </html>
