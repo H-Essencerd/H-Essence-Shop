@@ -972,13 +972,16 @@
     }
 
     .modal-box {
-      width: min(520px, 100%);
-      background: white;
-      border-radius: 16px;
-      border: 2px solid var(--dorado);
-      box-shadow: 0 20px 50px rgba(0,0,0,.25);
-      overflow: hidden;
-    }
+  width: min(520px, 100%);
+  background: white;
+  border-radius: 16px;
+  border: 2px solid var(--dorado);
+  box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
 
     .modal-head {
       background: var(--negro);
@@ -998,10 +1001,24 @@
     }
 
     .modal-body {
-      padding: 16px;
-      display: grid;
-      gap: 12px;
-    }
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* AJUSTE PARA FACTURAS */
+
+#modal-factura .modal-box {
+  max-height: 92vh;
+}
+
+#modal-factura .table-container {
+  max-height: 220px;
+  overflow-y: auto;
+}
 
     .modal-actions {
       padding: 16px;
@@ -1866,8 +1883,11 @@ Etiqueta del producto
 
         <div class="calculator-grid">
           <div>
-            <label class="small-label">Producto</label>
-            <select id="factura-producto-select"></select>
+            <label class="small-label">Buscar producto</label>
+<input type="text" id="factura-buscar-producto" oninput="filtrarProductosFactura()" placeholder="Escribe para buscar perfume...">
+
+<label class="small-label">Producto</label>
+<select id="factura-producto-select"></select>
           </div>
           <div>
             <label class="small-label">Cantidad</label>
@@ -4498,11 +4518,36 @@ function cargarProductosEnSelectorFactura() {
 
   select.innerHTML = productos.map(p => `
     <option value="${p.id}">
-      ${safeText(p.nombre)} (${safeText(p.ref)}) - Stock: ${Number(p.stock) || 0} - ${formatMoney(p.venta || 0)}
+      ${safeText(p.nombre)} - ${safeText(p.onzas || "N/A")} - Ref: ${safeText(p.ref)} - Stock: ${Number(p.stock) || 0} - ${formatMoney(p.venta || 0)}
     </option>
   `).join('');
 }
 
+    function filtrarProductosFactura() {
+  const input = document.getElementById("factura-buscar-producto");
+  const select = document.getElementById("factura-producto-select");
+
+  if (!input || !select) return;
+
+  const texto = input.value.toLowerCase();
+
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+
+  const filtrados = productos.filter(p =>
+  safeText(p.nombre).toLowerCase().includes(texto) ||
+  safeText(p.ref).toLowerCase().includes(texto) ||
+  safeText(p.categoria).toLowerCase().includes(texto) ||
+  safeText(p.descripcion).toLowerCase().includes(texto) ||
+  safeText(p.onzas).toLowerCase().includes(texto)
+);
+
+  select.innerHTML = filtrados.map(p => `
+    <option value="${p.id}">
+      ${safeText(p.nombre)} - ${safeText(p.onzas || "N/A")} - Ref: ${safeText(p.ref)} - Stock: ${Number(p.stock) || 0} - ${formatMoney(p.venta || 0)}
+    </option>
+  `).join('');
+}
+    
 function agregarItemFactura() {
   if (!facturaActual) return;
 
