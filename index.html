@@ -2036,6 +2036,7 @@ Etiqueta del producto
     let renderTimerCliente = null;
     let facturaActual = null;
     let facturaEditandoId = null;
+    let inventarioVisible = localStorage.getItem("h_inventario_visible") !== "0";
 
     const defaultDB = {
   productos: [],
@@ -2398,7 +2399,6 @@ const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
 const saldoInicial = Number(db.saldoInicial || 0);
 const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
 const totalAjustes = ajustes.reduce((acc, a) => acc + (Number(a.monto) || 0), 0);
-const gananciaNeta = gananciaReal - totalGastos;
 const balanceActual = saldoInicial + totalAjustes + ingresoTotalVentas - totalGastos;
 const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
       const byMargen = [...productos]
@@ -4319,6 +4319,11 @@ function seleccionarCategoriaFiltro(categoria) {
   if (tabla) tabla.innerHTML = tablaHTML;
   if (catalogo) catalogo.innerHTML = catalogoHTML;
 
+      const inventarioWrap = document.getElementById('inventario-wrap');
+if (inventarioWrap) {
+  inventarioWrap.style.display = inventarioVisible ? 'block' : 'none';
+}
+
   if (btnCart) btnCart.style.display = db.cartEnabled ? "block" : "none";
   if (!db.cartEnabled && panelCart) panelCart.style.display = "none";
 
@@ -5308,11 +5313,10 @@ normalizarCategoriasExistentes();
   const box = document.getElementById('inventario-wrap');
   if (!box) return;
 
-  if (box.style.display === 'none') {
-    box.style.display = 'block';
-  } else {
-    box.style.display = 'none';
-  }
+  inventarioVisible = !inventarioVisible;
+  box.style.display = inventarioVisible ? 'block' : 'none';
+
+  localStorage.setItem("h_inventario_visible", inventarioVisible ? "1" : "0");
 }
 
 window.toggleInventario = toggleInventario;
