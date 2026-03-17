@@ -7,6 +7,8 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
     :root {
@@ -5400,60 +5402,296 @@ function generarHTMLFactura(f) {
     `;
   }).join("");
 
-  const subtotal = Number(f.subtotal || 0);
-  const descuentoTotal = Number(f.descuentoTotal || 0);
-  const totalFactura = Number(f.total || 0);
-
   return `
   <html>
   <head>
-    <title>Factura</title>
+    <title>Factura ${f.numero || ""}</title>
     <style>
-      body { font-family: Arial; padding: 20px; }
-      h1 { color: #D4AF37; }
-      table { width:100%; border-collapse: collapse; margin-top:20px; }
-      th, td { border:1px solid #ddd; padding:10px; }
-      th { background:#1A1A1A; color:#D4AF37; }
-      .total-box { margin-top:20px; text-align:right; }
-      .grand { font-size:20px; font-weight:bold; }
+      body {
+        font-family: Arial, sans-serif;
+        padding: 30px;
+        color: #1A1A1A;
+      }
+      .wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  border: 2px solid #D4AF37;
+  border-radius: 14px;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+      h1 {
+        margin: 0 0 10px;
+        color: #D4AF37;
+      }
+      .top {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      .box {
+        flex: 1;
+        min-width: 240px;
+      }
+      .label {
+        font-weight: bold;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th, td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background: #1A1A1A;
+        color: #D4AF37;
+      }
+      .totales {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .totales-box {
+        min-width: 280px;
+      }
+      .totales-box div {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .total-final {
+        font-size: 20px;
+        font-weight: bold;
+        border-top: 2px solid #D4AF37;
+        padding-top: 10px;
+      }
+      .nota {
+        margin-top: 20px;
+        background: #f9f7f2;
+        border-left: 4px solid #D4AF37;
+        padding: 12px;
+        border-radius: 8px;
+      }
+      .acciones {
+        margin-top: 30px;
+        text-align: center;
+      }
+      button {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 10px;
+        background: #1A1A1A;
+        color: #D4AF37;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      @media print {
+        .acciones { display: none; }
+        body { padding: 0; }
+        .wrap { border: none; }
+      }
+      .watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0.05;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.watermark img {
+  width: 400px;
+  max-width: 80%;
+}
     </style>
   </head>
   <body>
+  <div class="watermark">
+  ${db.logo ? `<img src="${db.logo}">` : ""}
+</div>
+    <div class="wrap">
+      <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
+      <p>${db.slogan || ""}</p>
 
-    <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
+      <div class="top">
+        <div class="box">
+          <div><span class="label">Factura:</span> ${f.numero || ""}</div>
+          <div><span class="label">Fecha:</span> ${f.fecha || ""}</div>
+        </div>
+        <div class="box">
+          <div><span class="label">Cliente:</span> ${f.cliente || "Consumidor final"}</div>
+        </div>
+      </div>
 
-    <p><strong>Cliente:</strong> ${f.cliente || "Consumidor final"}</p>
-    <p><strong>Fecha:</strong> ${f.fecha || ""}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Ref</th>
+            <th>Producto</th>
+            <th>Cant.</th>
+            <th>Precio</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items}
+        </tbody>
+      </table>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Ref</th>
-          <th>Producto</th>
-          <th>Cant</th>
-          <th>Precio Final</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items}
-      </tbody>
-    </table>
+      <div class="totales">
+        <div class="totales-box">
+          <div><span>Subtotal:</span><span>${formatMoney(f.subtotal || 0)}</span></div>
+          <div><span>Descuento:</span><span>${formatMoney(f.descuentoTotal || 0)}</span></div>
+          <div class="total-final"><span>Total:</span><span>${formatMoney(f.total || 0)}</span></div>
+        </div>
+      </div>
 
-    <div class="total-box">
-      <div>Subtotal: ${formatMoney(subtotal)}</div>
-      <div>Descuento: ${formatMoney(descuentoTotal)}</div>
-      <div class="grand">Total: ${formatMoney(totalFactura)}</div>
+      ${f.nota ? `<div class="nota"><strong>Nota:</strong> ${f.nota}</div>` : ""}
+
+      <div class="acciones">
+        <button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+      </div>
     </div>
-
-    <br><br>
-    <button onclick="window.print()">🖨️ Imprimir / PDF</button>
-
   </body>
   </html>
   `;
 }
-function verFacturaReal(id) {
+    async function generarPDFFacturaBlob(f) {
+  const contenedor = document.createElement("div");
+  contenedor.style.position = "fixed";
+  contenedor.style.left = "-99999px";
+  contenedor.style.top = "0";
+  contenedor.style.width = "900px";
+  contenedor.style.background = "#ffffff";
+  contenedor.style.zIndex = "-1";
+
+  contenedor.innerHTML = `
+   <div id="factura-pdf-render" style="font-family: Arial, sans-serif; color:#1A1A1A; padding:30px; position:relative; background:#ffffff;">
+  
+  ${db.logo ? `
+    <div style="
+      position:absolute;
+      top:50%;
+      left:50%;
+      transform:translate(-50%, -50%);
+      opacity:0.05;
+      z-index:0;
+      width:100%;
+      text-align:center;
+      pointer-events:none;
+    ">
+      <img src="${db.logo}" style="width:400px; max-width:80%;">
+    </div>
+  ` : ""}
+
+  <div style="max-width:900px; margin:0 auto; border:2px solid #D4AF37; border-radius:14px; padding:24px; position:relative; z-index:1;">
+        <h1 style="margin:0 0 10px; color:#D4AF37;">${db.nombreTienda || "H-ESSENCE"}</h1>
+        <p>${db.slogan || ""}</p>
+
+        <div style="display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
+          <div style="flex:1; min-width:240px;">
+            <div><strong>Factura:</strong> ${f.numero || ""}</div>
+            <div><strong>Fecha:</strong> ${f.fecha || ""}</div>
+          </div>
+          <div style="flex:1; min-width:240px;">
+            <div><strong>Cliente:</strong> ${f.cliente || "Consumidor final"}</div>
+          </div>
+        </div>
+
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+          <thead>
+            <tr>
+              <th style="border:1px solid #ddd; padding:10px; text-align:left; background:#1A1A1A; color:#D4AF37;">Ref</th>
+              <th style="border:1px solid #ddd; padding:10px; text-align:left; background:#1A1A1A; color:#D4AF37;">Producto</th>
+              <th style="border:1px solid #ddd; padding:10px; text-align:left; background:#1A1A1A; color:#D4AF37;">Cant.</th>
+              <th style="border:1px solid #ddd; padding:10px; text-align:left; background:#1A1A1A; color:#D4AF37;">Precio</th>
+              <th style="border:1px solid #ddd; padding:10px; text-align:left; background:#1A1A1A; color:#D4AF37;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(f.items || []).map(item => {
+              const cantidad = Number(item.cantidad || 0);
+              const precio = Number(item.precioUnitario || 0);
+
+              let descuentoItem = 0;
+              if (item.tipoDescuento === "porcentaje") {
+                descuentoItem = precio * (Number(item.descuento || 0) / 100);
+              } else if (item.tipoDescuento === "valor") {
+                descuentoItem = Number(item.descuento || 0);
+              }
+
+              const precioFinal = Math.max(0, precio - descuentoItem);
+              const total = precioFinal * cantidad;
+
+              return `
+                <tr>
+                  <td style="border:1px solid #ddd; padding:10px;">${item.referencia || ""}</td>
+                  <td style="border:1px solid #ddd; padding:10px;">${item.nombre || ""}</td>
+                  <td style="border:1px solid #ddd; padding:10px;">${cantidad}</td>
+                  <td style="border:1px solid #ddd; padding:10px;">${formatMoney(precioFinal)}</td>
+                  <td style="border:1px solid #ddd; padding:10px;">${formatMoney(total)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+
+        <div style="margin-top:20px; display:flex; justify-content:flex-end;">
+          <div style="min-width:280px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>Subtotal:</span>
+              <span>${formatMoney(f.subtotal || 0)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>Descuento:</span>
+              <span>${formatMoney(f.descuentoTotal || 0)}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:bold; border-top:2px solid #D4AF37; padding-top:10px;">
+              <span>Total:</span>
+              <span>${formatMoney(f.total || 0)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${f.nota ? `
+          <div style="margin-top:20px; background:#f9f7f2; border-left:4px solid #D4AF37; padding:12px; border-radius:8px;">
+            <strong>Nota:</strong> ${f.nota}
+          </div>
+        ` : ""}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(contenedor);
+
+  const facturaNode = contenedor.querySelector("#factura-pdf-render");
+  const canvas = await html2canvas(facturaNode, {
+    scale: 2,
+    backgroundColor: "#ffffff"
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
+
+  const pdfWidth = pdf.internal.pageSize.getWidth();
+  const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+  document.body.removeChild(contenedor);
+
+  return pdf.output("blob");
+}   
+    function verFacturaReal(id) {
   const f = obtenerFacturaPorId(id);
   if (!f) return;
 
@@ -5473,16 +5711,42 @@ function imprimirFactura(id) {
   setTimeout(() => win.print(), 500);
 }
 
-function compartirFactura(id) {
+async function compartirFactura(id) {
   const f = obtenerFacturaPorId(id);
   if (!f) return;
 
-  const texto = `Factura ${f.numero || ""} - Total: ${formatMoney(
-    (f.items || []).reduce((acc, i) => acc + (i.cantidad * i.precioUnitario), 0)
-  )}`;
+  try {
+    mostrarAlerta("⏳ Generando PDF...");
 
-  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
-  window.open(url, "_blank");
+    const blob = await generarPDFFacturaBlob(f);
+    const fileName = `Factura-${f.numero || "sin-numero"}.pdf`;
+    const file = new File([blob], fileName, { type: "application/pdf" });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        title: `Factura ${f.numero || ""}`,
+        text: `Factura ${f.numero || ""} - ${db.nombreTienda || "H-ESSENCE"}`,
+        files: [file]
+      });
+      mostrarAlerta("✅ Factura compartida");
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+
+    mostrarAlerta("📄 PDF descargado. Ahora puedes adjuntarlo por WhatsApp.");
+  } catch (error) {
+    console.error(error);
+    mostrarAlerta("❌ No se pudo generar la factura PDF", "error");
+  }
 }
 
 window.verFacturaReal = verFacturaReal;
