@@ -5502,14 +5502,14 @@ function generarHTMLFactura(f) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  opacity: 0.05;
+  opacity: 0.18;
   z-index: 0;
   pointer-events: none;
 }
 
 .watermark img {
-  width: 400px;
-  max-width: 80%;
+  width: 520px;
+  max-width: 85%;
 }
     </style>
   </head>
@@ -5518,8 +5518,9 @@ function generarHTMLFactura(f) {
   ${db.logo ? `<img src="${db.logo}">` : ""}
 </div>
     <div class="wrap">
-      <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
-      <p>${db.slogan || ""}</p>
+  ${db.logo ? `<div style="text-align:center; margin-bottom:14px;"><img src="${db.logo}" style="max-width:180px; max-height:180px; object-fit:contain;"></div>` : ""}
+  <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
+  <p>${db.slogan || ""}</p>
 
       <div class="top">
         <div class="box">
@@ -5577,24 +5578,25 @@ function generarHTMLFactura(f) {
    <div id="factura-pdf-render" style="font-family: Arial, sans-serif; color:#1A1A1A; padding:30px; position:relative; background:#ffffff;">
   
   ${db.logo ? `
-    <div style="
-      position:absolute;
-      top:50%;
-      left:50%;
-      transform:translate(-50%, -50%);
-      opacity:0.05;
-      z-index:0;
-      width:100%;
-      text-align:center;
-      pointer-events:none;
-    ">
-      <img src="${db.logo}" style="width:400px; max-width:80%;">
-    </div>
-  ` : ""}
+  <div style="
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    opacity:0.18;
+    z-index:0;
+    width:100%;
+    text-align:center;
+    pointer-events:none;
+  ">
+    <img src="${db.logo}" style="width:520px; max-width:85%;">
+  </div>
+` : ""}
 
   <div style="max-width:900px; margin:0 auto; border:2px solid #D4AF37; border-radius:14px; padding:24px; position:relative; z-index:1;">
-        <h1 style="margin:0 0 10px; color:#D4AF37;">${db.nombreTienda || "H-ESSENCE"}</h1>
-        <p>${db.slogan || ""}</p>
+  ${db.logo ? `<div style="text-align:center; margin-bottom:14px;"><img src="${db.logo}" style="max-width:180px; max-height:180px; object-fit:contain;"></div>` : ""}
+  <h1 style="margin:0 0 10px; color:#D4AF37;">${db.nombreTienda || "H-ESSENCE"}</h1>
+  <p>${db.slogan || ""}</p>
 
         <div style="display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
           <div style="flex:1; min-width:240px;">
