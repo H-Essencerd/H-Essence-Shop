@@ -2975,7 +2975,9 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
   });
 }
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
     const rdb = firebase.database();
 
     function escucharNube() {
@@ -4236,7 +4238,7 @@ function seleccionarCategoriaFiltro(categoria) {
 
     const coincideCategoria =
       !categoriaActiva ||
-      catNorm.includes(categoriaActiva);
+      catNorm === categoriaActiva;
 
     if (catalogo && coincideBusqueda && coincideCategoria) {
       const badgeStockCard = p.dispo === 'inmediata'
@@ -4955,9 +4957,12 @@ function renderFacturas() {
       <td style="color:green;">${formatMoney(f.ganancia || 0)}</td>
       <td>${safeText(f.nota || "—")}</td>
       <td>
-        <button onclick="abrirModalFactura(${f.id})">✏️</button>
-        <button onclick="eliminarFactura(${f.id})">🗑️</button>
-      </td>
+  <button onclick="verFacturaReal(${f.id})">👁️</button>
+  <button onclick="imprimirFactura(${f.id})">🖨️</button>
+  <button onclick="compartirFactura(${f.id})">📤</button>
+  <button onclick="abrirModalFactura(${f.id})">✏️</button>
+  <button onclick="eliminarFactura(${f.id})">🗑️</button>
+</td>
     </tr>
   `).join('');
 }
@@ -5245,6 +5250,11 @@ normalizarCategoriasExistentes();
     renderAjustesBalance();
     actualizarResumenTrafico();
     actualizarBotonesAuth();
+
+        setInterval(() => {
+      if (esAdmin) guardarNube();
+    }, 10000);
+    
   } catch (e) {
     fatal(e);
   }
@@ -5360,7 +5370,124 @@ function limpiarBusquedaCliente() {
   render();
   input.focus();
 }
+    function obtenerFacturaPorId(id) {
+  return (db.facturas || []).find(f => f.id === id);
+}
 
+function generarHTMLFactura(f) {
+  const items = (f.items || []).map(item => {
+    const cantidad = Number(item.cantidad || 0);
+    const precio = Number(item.precioUnitario || 0);
+
+    let descuentoItem = 0;
+    if (item.tipoDescuento === "porcentaje") {
+      descuentoItem = precio * (Number(item.descuento || 0) / 100);
+    } else if (item.tipoDescuento === "valor") {
+      descuentoItem = Number(item.descuento || 0);
+    }
+
+    const precioFinal = Math.max(0, precio - descuentoItem);
+    const total = precioFinal * cantidad;
+
+    return `
+      <tr>
+        <td>${item.referencia || ""}</td>
+        <td>${item.nombre || ""}</td>
+        <td>${cantidad}</td>
+        <td>${formatMoney(precioFinal)}</td>
+        <td>${formatMoney(total)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const subtotal = Number(f.subtotal || 0);
+  const descuentoTotal = Number(f.descuentoTotal || 0);
+  const totalFactura = Number(f.total || 0);
+
+  return `
+  <html>
+  <head>
+    <title>Factura</title>
+    <style>
+      body { font-family: Arial; padding: 20px; }
+      h1 { color: #D4AF37; }
+      table { width:100%; border-collapse: collapse; margin-top:20px; }
+      th, td { border:1px solid #ddd; padding:10px; }
+      th { background:#1A1A1A; color:#D4AF37; }
+      .total-box { margin-top:20px; text-align:right; }
+      .grand { font-size:20px; font-weight:bold; }
+    </style>
+  </head>
+  <body>
+
+    <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
+
+    <p><strong>Cliente:</strong> ${f.cliente || "Consumidor final"}</p>
+    <p><strong>Fecha:</strong> ${f.fecha || ""}</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Ref</th>
+          <th>Producto</th>
+          <th>Cant</th>
+          <th>Precio Final</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items}
+      </tbody>
+    </table>
+
+    <div class="total-box">
+      <div>Subtotal: ${formatMoney(subtotal)}</div>
+      <div>Descuento: ${formatMoney(descuentoTotal)}</div>
+      <div class="grand">Total: ${formatMoney(totalFactura)}</div>
+    </div>
+
+    <br><br>
+    <button onclick="window.print()">🖨️ Imprimir / PDF</button>
+
+  </body>
+  </html>
+  `;
+}
+function verFacturaReal(id) {
+  const f = obtenerFacturaPorId(id);
+  if (!f) return;
+
+  const win = window.open("", "_blank");
+  win.document.write(generarHTMLFactura(f));
+  win.document.close();
+}
+
+function imprimirFactura(id) {
+  const f = obtenerFacturaPorId(id);
+  if (!f) return;
+
+  const win = window.open("", "_blank");
+  win.document.write(generarHTMLFactura(f));
+  win.document.close();
+
+  setTimeout(() => win.print(), 500);
+}
+
+function compartirFactura(id) {
+  const f = obtenerFacturaPorId(id);
+  if (!f) return;
+
+  const texto = `Factura ${f.numero || ""} - Total: ${formatMoney(
+    (f.items || []).reduce((acc, i) => acc + (i.cantidad * i.precioUnitario), 0)
+  )}`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+  window.open(url, "_blank");
+}
+
+window.verFacturaReal = verFacturaReal;
+window.imprimirFactura = imprimirFactura;
+window.compartirFactura = compartirFactura;    
 window.toggleClearSearch = toggleClearSearch;
 window.limpiarBusquedaCliente = limpiarBusquedaCliente;
 window.toggleClearCategoria = toggleClearCategoria;
