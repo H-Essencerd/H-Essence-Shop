@@ -5423,7 +5423,7 @@ function generarHTMLFactura(f) {
 }
       h1 {
         margin: 0 0 10px;
-        color: #D4AF37;
+        color: #D000;
       }
       .top {
         display: flex;
@@ -5518,9 +5518,11 @@ function generarHTMLFactura(f) {
   ${db.logo ? `<img src="${db.logo}">` : ""}
 </div>
     <div class="wrap">
-  ${db.logo ? `<div style="text-align:center; margin-bottom:14px;"><img src="${db.logo}" style="max-width:180px; max-height:180px; object-fit:contain;"></div>` : ""}
-  <h1>${db.nombreTienda || "H-ESSENCE"}</h1>
-  <p>${db.slogan || ""}</p>
+  <div style="text-align:center; margin-bottom:10px;">
+  ${db.logo ? `<img src="${db.logo}" style="width:70px; height:70px; object-fit:contain; display:block; margin:0 auto 8px;">` : ""}
+  <h1 style="margin:0; color:#000;">${db.nombreTienda || "H-ESSENCE"}</h1>
+</div>
+  <p style="text-align:center; margin:0 0 20px; color:#555;">${db.slogan || ""}</p>
 
       <div class="top">
         <div class="box">
@@ -5594,9 +5596,11 @@ function generarHTMLFactura(f) {
 ` : ""}
 
   <div style="max-width:900px; margin:0 auto; border:2px solid #D4AF37; border-radius:14px; padding:24px; position:relative; z-index:1;">
-  ${db.logo ? `<div style="text-align:center; margin-bottom:14px;"><img src="${db.logo}" style="max-width:180px; max-height:180px; object-fit:contain;"></div>` : ""}
-  <h1 style="margin:0 0 10px; color:#D4AF37;">${db.nombreTienda || "H-ESSENCE"}</h1>
-  <p>${db.slogan || ""}</p>
+  <div style="text-align:center; margin-bottom:10px;">
+  ${db.logo ? `<img src="${db.logo}" style="width:70px; height:70px; object-fit:contain; display:block; margin:0 auto 8px;">` : ""}
+  <h1 style="margin:0; color:#000;">${db.nombreTienda || "H-ESSENCE"}</h1>
+</div>
+  <p style="text-align:center; margin:0 0 20px; color:#555;">${db.slogan || ""}</p>
 
         <div style="display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
           <div style="flex:1; min-width:240px;">
