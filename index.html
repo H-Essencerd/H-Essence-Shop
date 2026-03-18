@@ -5726,17 +5726,6 @@ async function compartirFactura(id) {
 
     const blob = await generarPDFFacturaBlob(f);
     const fileName = `Factura-${f.numero || "sin-numero"}.pdf`;
-    const file = new File([blob], fileName, { type: "application/pdf" });
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: `Factura ${f.numero || ""}`,
-        text: `Factura ${f.numero || ""} - ${db.nombreTienda || "H-ESSENCE"}`,
-        files: [file]
-      });
-      mostrarAlerta("✅ Factura compartida");
-      return;
-    }
 
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -5748,7 +5737,7 @@ async function compartirFactura(id) {
 
     setTimeout(() => URL.revokeObjectURL(url), 3000);
 
-    mostrarAlerta("📄 PDF descargado. Ahora puedes adjuntarlo por WhatsApp.");
+    mostrarAlerta("📄 PDF descargado correctamente");
   } catch (error) {
     console.error(error);
     mostrarAlerta("❌ No se pudo generar la factura PDF", "error");
