@@ -4718,7 +4718,13 @@ function seleccionarCategoriaFiltro(categoria) {
           ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
         </div>
 
-        ${p.descripcion ? `<div class="desc-lista descripcion-producto">${safeText(p.descripcion).replace(/\n/g, '<br>')}</div>` : ''}
+        ${p.descripcion ? `<div class="desc-lista descripcion-producto">${
+  safeText(p.descripcion)
+    .replace(/\n/g, '<br>')
+    .replace(/Notas de salida:/gi, '<strong>Notas de salida:</strong>')
+    .replace(/Notas de corazón:/gi, '<strong>Notas de corazón:</strong>')
+    .replace(/Notas de fondo:/gi, '<strong>Notas de fondo:</strong>')
+}</div>` : ''}
 
         <p class="precio-lista">${formatMoney(p.venta)}</p>
 
