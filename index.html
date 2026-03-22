@@ -4766,7 +4766,16 @@ function seleccionarCategoriaFiltro(categoria) {
               <img src="${p.img || "https://via.placeholder.com/300"}" alt="">
               <h3>${safeText(p.nombre)}</h3>
               <p style="font-size:12px; opacity:.7; margin-bottom:4px;">${cat}</p>
-              ${p.descripcion ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${safeText(p.descripcion)}</p>` : ""}
+              ${p.descripcion ? `<p class="descripcion-producto" style="font-size:12px; color:#555; margin:4px 0 4px; line-height:1.5;">${
+  safeText(p.descripcion)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n\s*\n+/g, '\n')
+    .replace(/\n/g, '<br>')
+    .replace(/(?:<br>\s*)*Notas de salida:/gi, '<br><strong>Notas de salida:</strong>')
+    .replace(/(?:<br>\s*)*Notas de corazón:/gi, '<br><strong>Notas de corazón:</strong>')
+    .replace(/(?:<br>\s*)*Notas de fondo:/gi, '<br><strong>Notas de fondo:</strong>')
+}</p>` : ''}
               <p style="color:var(--dorado); font-weight:bold; font-size:1.3rem;">${formatMoney(p.venta)}</p>
 
               <a href="https://wa.me/${TEL_WHATSAPP}?text=${wsMsg}" target="_blank" onclick="registrarClickWhatsApp()"
