@@ -1113,6 +1113,11 @@
       <h3>🛠️ PANEL DE ADMINISTRACIÓN</h3>
       <div class="section-actions">
         <button class="btn-mini btn-gold" onclick="guardarTodo()">📌 Guardar cambios del sistema</button>
+<button class="btn-mini btn-blue" onclick="descargarBackupManual()">⬇️ Descargar backup JSON</button>
+<label class="btn-mini btn-gray" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+  📤 Importar backup JSON
+  <input type="file" accept=".json,application/json" onchange="seleccionarArchivoBackup(this)" style="display:none;">
+</label>
       </div>
     </div>
 
@@ -1998,68 +2003,73 @@ Etiqueta del producto
 
   <script>
     function fatal(err) {
-      console.error(err);
-      const box = document.getElementById('fatal');
-      const msg = document.getElementById('fatal-msg');
-      if (box && msg) {
-        msg.textContent = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
-        box.style.display = 'block';
-      }
-    }
+  console.error(err);
+  const box = document.getElementById('fatal');
+  const msg = document.getElementById('fatal-msg');
+  if (box && msg) {
+    msg.textContent = (err && (err.stack || err.message)) ? (err.stack || err.message) : String(err);
+    box.style.display = 'block';
+  }
+}
 
-    window.addEventListener('error', (e) => fatal(e.error || e.message));
-    window.addEventListener('unhandledrejection', (e) => fatal(e.reason));
+window.addEventListener('error', (e) => fatal(e.error || e.message));
+window.addEventListener('unhandledrejection', (e) => fatal(e.reason));
 
-    const TEL_WHATSAPP = "18097530456";
-    const PATH_DB = "catalogo_v1";
-    const ADMIN_EMAIL = "joel_ahg13@hotmail.com";
+const TEL_WHATSAPP = "18097530456";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
-      authDomain: "h-essence-shop.firebaseapp.com",
-      databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
-      projectId: "h-essence-shop",
-      storageBucket: "h-essence-shop.firebasestorage.app",
-      messagingSenderId: "128450401838",
-      appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
-    };
+const STORAGE_KEY = "h_essence_final_db";
+const STORAGE_BACKUP_LAST_KEY = "h_essence_final_db_last_backup";
+const STORAGE_BACKUP_PREFIX = "h_essence_backup_";
 
-    let estaGirando = false;
-    let currentImg = "";
-    let esAdmin = false;
-    let guardando = false;
-    let guardadoPendiente = false;
-    let ultimoGuardadoHash = "";
-    let rotacionActual = 0;
-    let vistaCatalogo = localStorage.getItem("h_view_mode") || "grid";
-    let ventaPendienteId = null;
-    let anularVentaPendienteId = null;
-    let renderTimerAdmin = null;
-    let renderTimerCliente = null;
-    let facturaActual = null;
-    let facturaEditandoId = null;
-    let inventarioVisible = localStorage.getItem("h_inventario_visible") !== "0";
+const PATH_DB = "catalogo_v1";
+const PATH_BACKUPS = "catalogo_backups";
+const PATH_MIRROR_DB = "catalogo_mirror";
 
-    const defaultDB = {
+const ADMIN_EMAIL = "joel_ahg13@hotmail.com";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAoqlm_op87XOyqoxywzPp2Q-PWhbipvu8",
+  authDomain: "h-essence-shop.firebaseapp.com",
+  databaseURL: "https://h-essence-shop-default-rtdb.firebaseio.com",
+  projectId: "h-essence-shop",
+  storageBucket: "h-essence-shop.firebasestorage.app",
+  messagingSenderId: "128450401838",
+  appId: "1:128450401838:web:7ae3e9b48aba38c6a231bf"
+};
+
+let estaGirando = false;
+let currentImg = "";
+let esAdmin = false;
+let guardando = false;
+let guardadoPendiente = false;
+let ultimoGuardadoHash = "";
+let rotacionActual = 0;
+let vistaCatalogo = localStorage.getItem("h_view_mode") || "grid";
+let ventaPendienteId = null;
+let anularVentaPendienteId = null;
+let renderTimerAdmin = null;
+let renderTimerCliente = null;
+let facturaActual = null;
+let facturaEditandoId = null;
+let inventarioVisible = localStorage.getItem("h_inventario_visible") !== "0";
+
+let firebaseDisponible = true;
+let sincronizandoDesdeNube = false;
+let ultimaDescargaBackupTs = 0;
+
+const defaultDB = {
   productos: [],
   ventasHistorial: [],
   facturas: [],
-  contadorFacturas: 1, 
+  contadorFacturas: 1,
   gastos: [],
   saldoInicial: 0,
-  ajustesBalance: [],    
+  ajustesBalance: [],
   nombreTienda: "H-ESSENCE",
   slogan: "Luxury Perfumery RD",
   logo: "",
   ruletaVisible: false,
-  premios: [
-    "PREMIO 1",
-    "INTENTA OTRA VEZ",
-    "PREMIO VIP",
-    "CASI",
-    "DESCUENTO",
-    "REGALO"
-  ],
+  premios: ["PREMIO 1", "INTENTA OTRA VEZ", "PREMIO VIP", "CASI", "DESCUENTO", "REGALO"],
   tipos: ["win", "lose", "win", "lose", "win", "lose"],
   colorTextoRuleta: "#FFFFFF",
   colorFlecha: "#1A1A1A",
@@ -2073,45 +2083,320 @@ Etiqueta del producto
   visitasHoy: {},
   clicksWhatsApp: 0,
   agregadosCarrito: 0,
-  _updatedAt: 0
+  logsCambios: [],
+  _updatedAt: 0,
+  _lastSafeSaveAt: 0,
+  _version: 1,
+  _lastEditor: ""
 };
-    let db = loadLocal() || structuredClone(defaultDB);
 
-    function loadLocal() {
-      try {
-        const raw = localStorage.getItem('h_essence_final_db');
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : null;
-      } catch {
-        return null;
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function nowTs() {
+  return Date.now();
+}
+
+function toNum(v) {
+  return Number(v || 0);
+}
+
+function esArrayConDatos(v) {
+  return Array.isArray(v) && v.length > 0;
+}
+
+function normalizarDB(data) {
+  const base = deepClone(defaultDB);
+  const out = { ...base, ...(data || {}) };
+
+  if (!Array.isArray(out.productos)) out.productos = [];
+  if (!Array.isArray(out.ventasHistorial)) out.ventasHistorial = [];
+  if (!Array.isArray(out.facturas)) out.facturas = [];
+  if (!Array.isArray(out.gastos)) out.gastos = [];
+  if (!Array.isArray(out.ajustesBalance)) out.ajustesBalance = [];
+  if (!Array.isArray(out.logsCambios)) out.logsCambios = [];
+  if (!out.visitasHoy || typeof out.visitasHoy !== "object") out.visitasHoy = {};
+
+  out.contadorFacturas = Number.isFinite(Number(out.contadorFacturas)) ? Number(out.contadorFacturas) : 1;
+  out.saldoInicial = toNum(out.saldoInicial);
+  out.logoSize = toNum(out.logoSize) || 240;
+  out.headerGap = toNum(out.headerGap) || 12;
+  out.titleGap = toNum(out.titleGap);
+  out.sloganGap = toNum(out.sloganGap);
+
+  out.visitasTotales = toNum(out.visitasTotales);
+  out.clicksWhatsApp = toNum(out.clicksWhatsApp);
+  out.agregadosCarrito = toNum(out.agregadosCarrito);
+
+  out._updatedAt = toNum(out._updatedAt);
+  out._lastSafeSaveAt = toNum(out._lastSafeSaveAt);
+  out._version = toNum(out._version) || 1;
+  out._lastEditor = String(out._lastEditor || "");
+
+  return out;
+}
+
+function dbTieneDatos(data) {
+  if (!data || typeof data !== "object") return false;
+
+  return (
+    esArrayConDatos(data.productos) ||
+    esArrayConDatos(data.ventasHistorial) ||
+    esArrayConDatos(data.facturas) ||
+    esArrayConDatos(data.gastos) ||
+    esArrayConDatos(data.ajustesBalance) ||
+    toNum(data.visitasTotales) > 0 ||
+    toNum(data.clicksWhatsApp) > 0 ||
+    toNum(data.agregadosCarrito) > 0
+  );
+}
+
+function contarDatosCriticos(data) {
+  if (!data || typeof data !== "object") return 0;
+
+  let score = 0;
+  if (esArrayConDatos(data.productos)) score += 100 + data.productos.length;
+  if (esArrayConDatos(data.ventasHistorial)) score += 70 + data.ventasHistorial.length;
+  if (esArrayConDatos(data.facturas)) score += 70 + data.facturas.length;
+  if (esArrayConDatos(data.gastos)) score += 40 + data.gastos.length;
+  if (esArrayConDatos(data.ajustesBalance)) score += 30 + data.ajustesBalance.length;
+  if (toNum(data.visitasTotales) > 0) score += 5;
+  if (toNum(data.clicksWhatsApp) > 0) score += 5;
+  if (toNum(data.agregadosCarrito) > 0) score += 5;
+
+  return score;
+}
+
+function resumenDB(data) {
+  const safe = normalizarDB(data);
+  return {
+    productos: safe.productos.length,
+    ventasHistorial: safe.ventasHistorial.length,
+    facturas: safe.facturas.length,
+    gastos: safe.gastos.length,
+    ajustesBalance: safe.ajustesBalance.length,
+    visitasTotales: safe.visitasTotales,
+    clicksWhatsApp: safe.clicksWhatsApp,
+    agregadosCarrito: safe.agregadosCarrito,
+    _updatedAt: safe._updatedAt
+  };
+}
+
+function registrarLogCambio(accion, extra = {}) {
+  if (!Array.isArray(db.logsCambios)) db.logsCambios = [];
+  db.logsCambios.unshift({
+    id: nowTs() + "_" + Math.random().toString(36).slice(2, 8),
+    ts: nowTs(),
+    user: esAdmin ? ADMIN_EMAIL : "sistema",
+    accion,
+    resumen: resumenDB(db),
+    extra
+  });
+  if (db.logsCambios.length > 300) {
+    db.logsCambios = db.logsCambios.slice(0, 300);
+  }
+}
+
+function cargarBackupLocalReciente() {
+  try {
+    const last = localStorage.getItem(STORAGE_BACKUP_LAST_KEY);
+    if (!last) return null;
+    const parsed = JSON.parse(last);
+    if (!parsed || typeof parsed !== "object" || !parsed.data) return null;
+    return normalizarDB(parsed.data);
+  } catch {
+    return null;
+  }
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      const backup = cargarBackupLocalReciente();
+      return backup || null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      const backup = cargarBackupLocalReciente();
+      return backup || null;
+    }
+
+    return normalizarDB(parsed);
+  } catch {
+    const backup = cargarBackupLocalReciente();
+    return backup || null;
+  }
+}
+
+function guardarBackupHistoricoLocal(payload = db) {
+  try {
+    const key = STORAGE_BACKUP_PREFIX + nowTs();
+    localStorage.setItem(key, JSON.stringify({
+      createdAt: nowTs(),
+      resumen: resumenDB(payload),
+      data: payload
+    }));
+  } catch (e) {
+    console.error("No se pudo guardar backup histórico local:", e);
+  }
+}
+
+function limpiarBackupsLocalesAntiguos(maximo = 25) {
+  try {
+    const keys = Object.keys(localStorage)
+      .filter(k => k.startsWith(STORAGE_BACKUP_PREFIX))
+      .sort();
+
+    if (keys.length <= maximo) return;
+
+    const sobrantes = keys.length - maximo;
+    keys.slice(0, sobrantes).forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    console.error("No se pudieron limpiar backups locales antiguos:", e);
+  }
+}
+
+function saveLocal() {
+  try {
+    const payload = normalizarDB(db);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_BACKUP_LAST_KEY, JSON.stringify({
+      createdAt: nowTs(),
+      resumen: resumenDB(payload),
+      data: payload
+    }));
+  } catch (e) {
+    console.error("Error guardando local:", e);
+  }
+}
+
+function getDBHash() {
+  try {
+    return JSON.stringify(resumenDB(db)) + "|" + JSON.stringify({
+      nombreTienda: db.nombreTienda,
+      slogan: db.slogan,
+      productos: Array.isArray(db.productos) ? db.productos.length : 0,
+      ventasHistorial: Array.isArray(db.ventasHistorial) ? db.ventasHistorial.length : 0,
+      facturas: Array.isArray(db.facturas) ? db.facturas.length : 0,
+      gastos: Array.isArray(db.gastos) ? db.gastos.length : 0,
+      ajustesBalance: Array.isArray(db.ajustesBalance) ? db.ajustesBalance.length : 0,
+      _updatedAt: db._updatedAt
+    });
+  } catch {
+    return String(Date.now());
+  }
+}
+
+function descargarTexto(nombreArchivo, contenido, tipo = "application/json") {
+  const blob = new Blob([contenido], { type: tipo });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = nombreArchivo;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportarBackupJSON(descargaForzada = false) {
+  try {
+    const ahora = nowTs();
+    if (!descargaForzada && ahora - ultimaDescargaBackupTs < 30000) return;
+
+    ultimaDescargaBackupTs = ahora;
+
+    const nombre = `h-essence-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    descargarTexto(nombre, JSON.stringify(normalizarDB(db), null, 2), "application/json");
+  } catch (e) {
+    console.error("No se pudo exportar el backup JSON:", e);
+  }
+}
+    function descargarBackupManual() {
+  exportarBackupJSON(true);
+  mostrarAlerta("✅ Backup JSON descargado");
+}
+
+    function importarBackupJSON(file) {
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      const candidato = normalizarDB(parsed);
+
+      if (!dbTieneDatos(candidato)) {
+        mostrarAlerta("❌ El archivo no contiene datos válidos", "error");
+        return;
       }
-    }
 
-    function saveLocal() {
-      try {
-        localStorage.setItem('h_essence_final_db', JSON.stringify(db));
-      } catch {}
-    }
+      db = candidato;
+      db._updatedAt = nowTs();
+      db._lastSafeSaveAt = nowTs();
+      db._lastEditor = ADMIN_EMAIL;
+      registrarLogCambio("importar_backup_json");
+      saveLocal();
+      guardarBackupHistoricoLocal(db);
+      limpiarBackupsLocalesAntiguos();
 
-    function getDBHash() {
-      try {
-        return JSON.stringify(db);
-      } catch {
-        return String(Date.now());
+      aplicarDBEnUI();
+
+      if (esAdmin) {
+        const ok = await guardarNube(true, true);
+        mostrarAlerta(ok ? "✅ Backup importado y sincronizado" : "⚠️ Backup importado localmente");
+      } else {
+        mostrarAlerta("✅ Backup importado localmente");
       }
+    } catch (err) {
+      console.error(err);
+      mostrarAlerta("❌ No se pudo importar el backup", "error");
     }
+  };
+  reader.readAsText(file);
+}
 
-    function mostrarAlerta(msg, tipo = "exito") {
-      const toast = document.getElementById('toast-alert');
-      if(!toast) return;
-      toast.innerText = msg;
-      toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
-      toast.style.color = 'white';
-      toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 2500);
-    }
+let db = normalizarDB(loadLocal() || deepClone(defaultDB));
 
+function aplicarDBEnUI() {
+  normalizarCategoriasExistentes();
+  cargarInputsAdmin();
+  actualizarUIHeader();
+  dibujarRuleta();
+  render();
+  actualizarDashboardAdmin();
+  renderHistorialVentas();
+  renderGastos();
+  renderAjustesBalance();
+  renderFacturas();
+  actualizarResumenTrafico();
+  autocompletarReferenciaSiVacia();
+  actualizarListaCategoriasAdmin();
+  actualizarLogoCentroRuleta();
+  cargarCategoriasCliente();
+  toggleClearSearch();
+  toggleClearCategoria();
+}
+
+function seleccionarArchivoBackup(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  importarBackupJSON(file);
+  input.value = "";
+}
+
+function mostrarAlerta(msg, tipo = "exito") {
+  const toast = document.getElementById('toast-alert');
+  if (!toast) return;
+  toast.innerText = msg;
+  toast.style.background = tipo === "error" ? 'var(--rojo-lose)' : 'var(--ganancia)';
+  toast.style.color = 'white';
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
     function safeText(v) {
       return (v == null) ? "" : String(v);
     }
@@ -2224,7 +2509,7 @@ function actualizarResumenTrafico() {
 
 function registrarVisitaUnicaSesion() {
   if (esAdmin) return;
-  
+
   const keyHoy = getFechaKey();
   const sessionKey = `h_visita_${keyHoy}`;
 
@@ -2232,7 +2517,7 @@ function registrarVisitaUnicaSesion() {
   sessionStorage.setItem(sessionKey, "1");
 
   if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
-  
+
   db.visitasTotales = (Number(db.visitasTotales) || 0) + 1;
   db.visitasHoy[keyHoy] = (Number(db.visitasHoy[keyHoy]) || 0) + 1;
   db._updatedAt = Date.now();
@@ -2240,8 +2525,12 @@ function registrarVisitaUnicaSesion() {
   saveLocal();
   actualizarResumenTrafico();
 
-  rdb.ref(PATH_DB).child("visitasTotales").transaction(current => (Number(current) || 0) + 1);
-  rdb.ref(PATH_DB).child("visitasHoy").child(keyHoy).transaction(current => (Number(current) || 0) + 1);
+  try {
+    rdb.ref(PATH_DB).child("visitasTotales").transaction(current => (Number(current) || 0) + 1);
+    rdb.ref(PATH_DB).child("visitasHoy").child(keyHoy).transaction(current => (Number(current) || 0) + 1);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 function registrarClickWhatsApp() {
@@ -2253,19 +2542,27 @@ function registrarClickWhatsApp() {
   saveLocal();
   actualizarResumenTrafico();
 
-  rdb.ref(PATH_DB).child("clicksWhatsApp").transaction(current => (Number(current) || 0) + 1);
+  try {
+    rdb.ref(PATH_DB).child("clicksWhatsApp").transaction(current => (Number(current) || 0) + 1);
+  } catch (e) {
+    console.error(e);
+  }
 }
-    
+
 function registrarAgregadoCarrito() {
   if (esAdmin) return;
-  
+
   db.agregadosCarrito = (Number(db.agregadosCarrito) || 0) + 1;
   db._updatedAt = Date.now();
 
   saveLocal();
   actualizarResumenTrafico();
 
-  rdb.ref(PATH_DB).child("agregadosCarrito").transaction(current => (Number(current) || 0) + 1);
+  try {
+    rdb.ref(PATH_DB).child("agregadosCarrito").transaction(current => (Number(current) || 0) + 1);
+  } catch (e) {
+    console.error(e);
+  }
 }
     
     function fechaBonita(iso) {
@@ -2984,81 +3281,223 @@ set('gastos-balance-actual', formatMoney(balanceActualGeneral));
 
     function escucharNube() {
   rdb.ref(PATH_DB).on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (!data || typeof data !== 'object') return;
+    try {
+      const remotoCrudo = snapshot.val();
 
-    const localUpdated = Number(db?._updatedAt || 0);
-    const remoteUpdated = Number(data?._updatedAt || 0);
+      if (!remotoCrudo || typeof remotoCrudo !== 'object') {
+        console.warn("Firebase devolvió vacío. Se ignora por seguridad.");
+        firebaseDisponible = false;
+        return;
+      }
 
-    if (guardando && remoteUpdated < localUpdated) {
-      return;
+      const remoto = normalizarDB(remotoCrudo);
+      const local = normalizarDB(db);
+
+      const localTiene = dbTieneDatos(local);
+      const remotoTiene = dbTieneDatos(remoto);
+
+      const scoreLocal = contarDatosCriticos(local);
+      const scoreRemoto = contarDatosCriticos(remoto);
+
+      const localUpdated = Number(local._updatedAt || 0);
+      const remoteUpdated = Number(remoto._updatedAt || 0);
+
+      const remotoPeligroso =
+        localTiene &&
+        (
+          !remotoTiene ||
+          (scoreRemoto < scoreLocal && remoteUpdated <= localUpdated)
+        );
+
+      if (guardando && remoteUpdated < localUpdated) {
+        console.warn("Se ignoró snapshot atrasado mientras se estaba guardando.");
+        firebaseDisponible = true;
+        return;
+      }
+
+      if (remotoPeligroso) {
+        console.warn("Snapshot remoto ignorado por seguridad. Local parece mejor.");
+        firebaseDisponible = true;
+        return;
+      }
+
+      sincronizandoDesdeNube = true;
+      db = remoto;
+      saveLocal();
+      guardarBackupHistoricoLocal(db);
+      limpiarBackupsLocalesAntiguos();
+      ultimoGuardadoHash = getDBHash();
+      firebaseDisponible = true;
+      aplicarDBEnUI();
+    } catch (err) {
+      console.error("Error en escucharNube:", err);
+      firebaseDisponible = false;
+    } finally {
+      sincronizandoDesdeNube = false;
     }
-
-    db = { ...structuredClone(defaultDB), ...data };
-
-    if (!Array.isArray(db.productos)) db.productos = [];
-if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-if (!Array.isArray(db.facturas)) db.facturas = [];
-if (!Array.isArray(db.gastos)) db.gastos = [];
-if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
-if (!Number.isFinite(Number(db.contadorFacturas))) db.contadorFacturas = 1;
-    db.visitasTotales = Number(db.visitasTotales || 0);
-    db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
-    db.agregadosCarrito = Number(db.agregadosCarrito || 0);
-
-    normalizarCategoriasExistentes();
-
-    saveLocal();
-    ultimoGuardadoHash = getDBHash();
-    cargarInputsAdmin();
-    actualizarUIHeader();
-    dibujarRuleta();
-    render();
-    actualizarDashboardAdmin();
-    renderHistorialVentas();
-    renderGastos();
-    renderAjustesBalance();
-    renderFacturas();
-    actualizarResumenTrafico();
-    autocompletarReferenciaSiVacia();
-    actualizarListaCategoriasAdmin();
+  }, (error) => {
+    console.error("Error escuchando Firebase:", error);
+    firebaseDisponible = false;
+    mostrarAlerta("⚠️ Firebase no disponible. Trabajando en modo local.", "error");
   });
 }
-    async function guardarNube(forzar = false) {
-      if (!esAdmin) return false;
+    async function crearBackupRemoto(payload) {
+  try {
+    const backupId = String(nowTs());
+    await rdb.ref(`${PATH_BACKUPS}/${backupId}`).set({
+      createdAt: nowTs(),
+      source: "app",
+      resumen: resumenDB(payload),
+      data: payload
+    });
+  } catch (e) {
+    console.error("No se pudo crear backup remoto:", e);
+  }
+}
 
-      const hashActual = getDBHash();
+async function guardarEspejoRemoto(payload) {
+  try {
+    await rdb.ref(PATH_MIRROR_DB).set({
+      ...payload,
+      _mirrorSavedAt: nowTs()
+    });
+  } catch (e) {
+    console.error("No se pudo guardar el espejo remoto:", e);
+  }
+}
 
-      if (!forzar && hashActual === ultimoGuardadoHash) {
-        return true;
-      }
+async function leerRemotoUnaVez() {
+  try {
+    const snap = await rdb.ref(PATH_DB).get();
+    return normalizarDB(snap.val());
+  } catch (e) {
+    console.error("No se pudo leer remoto antes de guardar:", e);
+    return null;
+  }
+}
 
-      if (guardando) {
-        guardadoPendiente = true;
-        return false;
-      }
+async function guardarNube(forzar = false, permitirBaseVacia = false) {
+  if (!esAdmin) return false;
 
-      guardando = true;
+  const hashActual = getDBHash();
 
-      try {
-        db._updatedAt = Date.now();
-        await rdb.ref(PATH_DB).set(db);
-        ultimoGuardadoHash = getDBHash();
-        return true;
-      } catch (e) {
-        console.error(e);
-        mostrarAlerta("❌ No se pudo guardar en la nube", "error");
-        return false;
-      } finally {
-        guardando = false;
+  if (!forzar && hashActual === ultimoGuardadoHash) {
+    return true;
+  }
 
-        if (guardadoPendiente) {
-          guardadoPendiente = false;
-          setTimeout(() => guardarNube(true), 120);
-        }
-      }
+  if (guardando) {
+    guardadoPendiente = true;
+    return false;
+  }
+
+  const local = normalizarDB(db);
+  const remotoActual = await leerRemotoUnaVez();
+
+  const localTiene = dbTieneDatos(local);
+  const remotoTiene = dbTieneDatos(remotoActual);
+
+  if (!permitirBaseVacia && !localTiene) {
+    console.warn("Guardado bloqueado: no se sube una base vacía.");
+    mostrarAlerta("⛔ Bloqueado: no se permite guardar una base vacía", "error");
+    return false;
+  }
+
+  if (!permitirBaseVacia && !localTiene && remotoTiene) {
+    console.warn("Guardado bloqueado: local vacío y remoto con datos.");
+    mostrarAlerta("⛔ Bloqueado: la nube tiene datos y tu copia local está vacía", "error");
+    return false;
+  }
+
+  if (!permitirBaseVacia && remotoTiene) {
+    const scoreLocal = contarDatosCriticos(local);
+    const scoreRemoto = contarDatosCriticos(remotoActual);
+    const remoteUpdated = Number(remotoActual?._updatedAt || 0);
+    const localUpdated = Number(local._updatedAt || 0);
+
+    if (scoreLocal < scoreRemoto && localUpdated <= remoteUpdated) {
+      console.warn("Guardado bloqueado: la copia local parece más pobre que la remota.");
+      mostrarAlerta("⛔ Bloqueado: tu copia local parece incompleta frente a la nube", "error");
+      return false;
     }
+  }
 
+  guardando = true;
+
+  try {
+    db = normalizarDB({
+      ...local,
+      _updatedAt: nowTs(),
+      _lastSafeSaveAt: nowTs(),
+      _version: Number(local._version || 1) + 1,
+      _lastEditor: ADMIN_EMAIL
+    });
+
+    registrarLogCambio("guardar_nube", {
+      forzar,
+      permitirBaseVacia
+    });
+
+    saveLocal();
+    guardarBackupHistoricoLocal(db);
+    limpiarBackupsLocalesAntiguos();
+
+    await crearBackupRemoto(db);
+
+    await rdb.ref(PATH_DB).update({
+      productos: db.productos || [],
+      ventasHistorial: db.ventasHistorial || [],
+      facturas: db.facturas || [],
+      contadorFacturas: Number(db.contadorFacturas || 1),
+      gastos: db.gastos || [],
+      saldoInicial: Number(db.saldoInicial || 0),
+      ajustesBalance: db.ajustesBalance || [],
+      nombreTienda: db.nombreTienda || "H-ESSENCE",
+      slogan: db.slogan || "Luxury Perfumery RD",
+      logo: db.logo || "",
+      ruletaVisible: !!db.ruletaVisible,
+      premios: Array.isArray(db.premios) ? db.premios : [],
+      tipos: Array.isArray(db.tipos) ? db.tipos : [],
+      colorTextoRuleta: db.colorTextoRuleta || "#FFFFFF",
+      colorFlecha: db.colorFlecha || "#1A1A1A",
+      logoSize: Number(db.logoSize || 240),
+      headerGap: Number(db.headerGap || 12),
+      titleGap: Number(db.titleGap || 0),
+      sloganGap: Number(db.sloganGap || 0),
+      wheelSound: !!db.wheelSound,
+      cartEnabled: !!db.cartEnabled,
+      visitasTotales: Number(db.visitasTotales || 0),
+      visitasHoy: db.visitasHoy || {},
+      clicksWhatsApp: Number(db.clicksWhatsApp || 0),
+      agregadosCarrito: Number(db.agregadosCarrito || 0),
+      logsCambios: Array.isArray(db.logsCambios) ? db.logsCambios.slice(0, 300) : [],
+      _updatedAt: db._updatedAt,
+      _lastSafeSaveAt: db._lastSafeSaveAt,
+      _version: db._version,
+      _lastEditor: db._lastEditor
+    });
+
+    await guardarEspejoRemoto(db);
+
+    ultimoGuardadoHash = getDBHash();
+    firebaseDisponible = true;
+
+    exportarBackupJSON(false);
+
+    return true;
+  } catch (e) {
+    console.error(e);
+    firebaseDisponible = false;
+    mostrarAlerta("❌ No se pudo guardar en la nube", "error");
+    return false;
+  } finally {
+    guardando = false;
+
+    if (guardadoPendiente) {
+      guardadoPendiente = false;
+      setTimeout(() => guardarNube(true), 250);
+    }
+  }
+}
     function cargarInputsAdmin() {
       const shopNameEl = document.getElementById('input-shop-name');
       if(shopNameEl) shopNameEl.value = db.nombreTienda || "H-ESSENCE";
@@ -5103,64 +5542,80 @@ async function eliminarFactura(id) {
     }
 
     async function guardarTodo() {
-      if (!esAdmin) {
-        mostrarAlerta("❌ Solo el administrador puede guardar", "error");
-        return;
-      }
+  if (!esAdmin) {
+    mostrarAlerta("❌ Solo el administrador puede guardar", "error");
+    return;
+  }
 
-      try {
-        const inputNombre = document.getElementById('input-shop-name');
-        const inputSlogan = document.getElementById('input-shop-slogan');
-        const ruletaCheck = document.getElementById('ruleta-visible-check');
-        const wheelText = document.getElementById('wheel-text-color');
-        const wheelArrow = document.getElementById('wheel-arrow-color');
-        const chkSound = document.getElementById('ctrl-wheel-sound');
-        const chkCart = document.getElementById('ctrl-cart-enabled');
-        const sLogo = document.getElementById('ctrl-logo-size');
-        const sGap = document.getElementById('ctrl-header-gap');
-        const sT = document.getElementById('ctrl-title-gap');
-        const sS = document.getElementById('ctrl-slogan-gap');
+  try {
+    const inputNombre = document.getElementById('input-shop-name');
+    const inputSlogan = document.getElementById('input-shop-slogan');
+    const ruletaCheck = document.getElementById('ruleta-visible-check');
+    const wheelText = document.getElementById('wheel-text-color');
+    const wheelArrow = document.getElementById('wheel-arrow-color');
+    const chkSound = document.getElementById('ctrl-wheel-sound');
+    const chkCart = document.getElementById('ctrl-cart-enabled');
+    const sLogo = document.getElementById('ctrl-logo-size');
+    const sGap = document.getElementById('ctrl-header-gap');
+    const sT = document.getElementById('ctrl-title-gap');
+    const sS = document.getElementById('ctrl-slogan-gap');
 
-        db.nombreTienda = safeText(inputNombre?.value || "H-ESSENCE");
-        db.slogan = safeText(inputSlogan?.value || "Luxury Perfumery RD");
-        db.ruletaVisible = !!ruletaCheck?.checked;
-        db.colorTextoRuleta = wheelText?.value || "#FFFFFF";
-        db.colorFlecha = wheelArrow?.value || "#1A1A1A";
-        db.wheelSound = !!chkSound?.checked;
-        db.cartEnabled = !!chkCart?.checked;
-        db.logoSize = parseInt(sLogo?.value, 10) || 240;
-        db.headerGap = parseInt(sGap?.value, 10) || 12;
-        db.titleGap = parseInt(sT?.value, 10) || 0;
-        db.sloganGap = parseInt(sS?.value, 10) || 0;
+    db.nombreTienda = safeText(inputNombre?.value || "H-ESSENCE");
+    db.slogan = safeText(inputSlogan?.value || "Luxury Perfumery RD");
+    db.ruletaVisible = !!ruletaCheck?.checked;
+    db.colorTextoRuleta = wheelText?.value || "#FFFFFF";
+    db.colorFlecha = wheelArrow?.value || "#1A1A1A";
+    db.wheelSound = !!chkSound?.checked;
+    db.cartEnabled = !!chkCart?.checked;
+    db.logoSize = parseInt(sLogo?.value, 10) || 240;
+    db.headerGap = parseInt(sGap?.value, 10) || 12;
+    db.titleGap = parseInt(sT?.value, 10) || 0;
+    db.sloganGap = parseInt(sS?.value, 10) || 0;
 
-        db.premios = [];
-        db.tipos = [];
+    db.premios = [];
+    db.tipos = [];
 
-        for (let i = 1; i <= 6; i++) {
-          const premio = document.getElementById(`p${i}`)?.value?.trim() || `Premio ${i}`;
-          const tipo = document.getElementById(`t${i}`)?.value || "lose";
-          db.premios.push(premio);
-          db.tipos.push(tipo);
-        }
-
-        db._updatedAt = Date.now();
-        saveLocal();
-        actualizarUIHeader();
-        dibujarRuleta();
-        render();
-        actualizarDashboardAdmin();
-        renderHistorialVentas();
-        renderGastos();
-
-        await guardarNube(true);
-        mostrarAlerta("✅ Configuración guardada correctamente");
-      } catch (e) {
-        console.error(e);
-        mostrarAlerta("❌ Error al guardar la configuración", "error");
-        fatal(e);
-      }
+    for (let i = 1; i <= 6; i++) {
+      const premio = document.getElementById(`p${i}`)?.value?.trim() || `Premio ${i}`;
+      const tipo = document.getElementById(`t${i}`)?.value || "lose";
+      db.premios.push(premio);
+      db.tipos.push(tipo);
     }
 
+    db = normalizarDB(db);
+    db._updatedAt = Date.now();
+    db._lastSafeSaveAt = Date.now();
+    db._lastEditor = ADMIN_EMAIL;
+
+    registrarLogCambio("guardar_configuracion");
+
+    saveLocal();
+    guardarBackupHistoricoLocal(db);
+    limpiarBackupsLocalesAntiguos();
+
+    actualizarUIHeader();
+    dibujarRuleta();
+    render();
+    actualizarDashboardAdmin();
+    renderHistorialVentas();
+    renderGastos();
+    renderFacturas();
+    renderAjustesBalance();
+    actualizarResumenTrafico();
+
+    const ok = await guardarNube(true);
+
+    if (ok) {
+      mostrarAlerta("✅ Configuración guardada correctamente");
+    } else {
+      mostrarAlerta("⚠️ Configuración guardada localmente", "error");
+    }
+  } catch (e) {
+    console.error(e);
+    mostrarAlerta("❌ Error al guardar la configuración", "error");
+    fatal(e);
+  }
+}
     const btnCompartir = document.getElementById('btn-compartir-catalogo');
     const btnCart = document.getElementById('btn-cart');
     const btnCloseCart = document.getElementById('btn-close-cart');
@@ -5180,25 +5635,32 @@ async function eliminarFactura(id) {
 
     window.addEventListener('load', async () => {
   try {
+    db = normalizarDB(db);
+
     if (!Array.isArray(db.ventasHistorial)) db.ventasHistorial = [];
-if (!Array.isArray(db.productos)) db.productos = [];
-if (!Array.isArray(db.facturas)) db.facturas = [];
-if (!Array.isArray(db.gastos)) db.gastos = [];
-if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
-if (!Number.isFinite(Number(db.contadorFacturas))) db.contadorFacturas = 1;
+    if (!Array.isArray(db.productos)) db.productos = [];
+    if (!Array.isArray(db.facturas)) db.facturas = [];
+    if (!Array.isArray(db.gastos)) db.gastos = [];
+    if (!Array.isArray(db.ajustesBalance)) db.ajustesBalance = [];
+    if (!Array.isArray(db.logsCambios)) db.logsCambios = [];
+    if (!db.visitasHoy || typeof db.visitasHoy !== "object") db.visitasHoy = {};
+    if (!Number.isFinite(Number(db.contadorFacturas))) db.contadorFacturas = 1;
+
     db.visitasTotales = Number(db.visitasTotales || 0);
     db.clicksWhatsApp = Number(db.clicksWhatsApp || 0);
     db.agregadosCarrito = Number(db.agregadosCarrito || 0);
-    
-normalizarCategoriasExistentes();
+
+    saveLocal();
+    guardarBackupHistoricoLocal(db);
+    limpiarBackupsLocalesAntiguos();
+
     actualizarUIHeader();
     dibujarRuleta();
     updateLivePreview();
     activarDragDrop();
     activarSlidersHeader();
     actualizarCalculadoraPrecio();
-    escucharNube();
-    escucharAuth();
+
     render();
     cargarCategoriasCliente();
     toggleClearSearch();
@@ -5206,6 +5668,9 @@ normalizarCategoriasExistentes();
     autocompletarReferenciaSiVacia();
     actualizarListaCategoriasAdmin();
     renderFacturas();
+
+    escucharNube();
+    escucharAuth();
 
     const btnLogout = document.getElementById('btn-logout-admin');
     if (btnLogout) btnLogout.addEventListener('click', logoutAdmin);
@@ -5235,13 +5700,8 @@ normalizarCategoriasExistentes();
       }
     }
 
-    if (logoHeader) {
-      logoHeader.addEventListener('click', adminClickHandler);
-    }
-
-    if (shopName) {
-      shopName.addEventListener('click', adminClickHandler);
-    }
+    if (logoHeader) logoHeader.addEventListener('click', adminClickHandler);
+    if (shopName) shopName.addEventListener('click', adminClickHandler);
 
     actualizarBadgeCart();
     aplicarVistaCatalogo();
@@ -5253,10 +5713,10 @@ normalizarCategoriasExistentes();
     actualizarResumenTrafico();
     actualizarBotonesAuth();
 
-        setInterval(() => {
-      if (esAdmin) guardarNube();
+    setInterval(() => {
+      if (esAdmin) guardarNube(false);
     }, 10000);
-    
+
   } catch (e) {
     fatal(e);
   }
