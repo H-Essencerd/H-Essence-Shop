@@ -4718,7 +4718,7 @@ function seleccionarCategoriaFiltro(categoria) {
           ${safeText(p.onzas)} • ${p.dispo === 'inmediata' ? 'Entrega inmediata' : 'Por pedido'}
         </div>
 
-        ${p.descripcion ? `<div class="desc-lista descripcion-producto">${safeText(p.descripcion)}</div>` : ''}
+        ${p.descripcion ? `<div class="desc-lista descripcion-producto">${safeText(p.descripcion).replace(/\n/g, '<br>')}</div>` : ''}
 
         <p class="precio-lista">${formatMoney(p.venta)}</p>
 
