@@ -4728,12 +4728,13 @@ function seleccionarCategoriaFiltro(categoria) {
 
         ${p.descripcion ? `<div class="desc-lista descripcion-producto">${
   safeText(p.descripcion)
-  .replace(/\r\n/g, '\n')
-  .replace(/\r/g, '\n')
-  .replace(/\n/g, '<br>')
-  .replace(/Notas de salida:/gi, '<br><strong>Notas de salida:</strong>')
-  .replace(/Notas de corazón:/gi, '<br><strong>Notas de corazón:</strong>')
-  .replace(/Notas de fondo:/gi, '<br><strong>Notas de fondo:</strong>')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n/g, '<br>')
+    .replace(/Notas de salida:/gi, '<br><strong>Notas de salida:</strong>')
+    .replace(/Notas de corazón:/gi, '<br><strong>Notas de corazón:</strong>')
+    .replace(/Notas de fondo:/gi, '<br><strong>Notas de fondo:</strong>')
+}</div>` : ''}
 
         <p class="precio-lista">${formatMoney(p.venta)}</p>
 
