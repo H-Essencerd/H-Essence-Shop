@@ -556,7 +556,7 @@
 
     .descripcion-producto,
 .desc-lista {
-  white-space: pre-line;
+  white-space: normal;
   line-height: 1.6;
 }
     
@@ -3698,7 +3698,15 @@ if (saldoInicialInput) saldoInicialInput.value = Number(db.saldoInicial || 0);
           <img src="${img}">
           <h3>${n}</h3>
           <p style="font-size:12px; opacity:.7;">${c}</p>
-          ${d ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${d}</p>` : ''}
+          ${d ? `<p style="font-size:12px; color:#555; margin:6px 0 8px; line-height:1.45;">${
+  d
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\n/g, '<br>')
+    .replace(/Notas de salida:/gi, '<br><br><strong>Notas de salida:</strong>')
+    .replace(/Notas de corazón:/gi, '<br><strong>Notas de corazón:</strong>')
+    .replace(/Notas de fondo:/gi, '<br><strong>Notas de fondo:</strong>')
+}</p>` : ''}
           <p style="color:var(--dorado); font-weight:bold;">RD$ ${v}</p>
         </div>`;
     }
@@ -4720,10 +4728,12 @@ function seleccionarCategoriaFiltro(categoria) {
 
         ${p.descripcion ? `<div class="desc-lista descripcion-producto">${
   safeText(p.descripcion)
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
     .replace(/\n/g, '<br>')
-    .replace(/Notas de salida:/gi, '<strong>Notas de salida:</strong>')
-    .replace(/Notas de corazón:/gi, '<strong>Notas de corazón:</strong>')
-    .replace(/Notas de fondo:/gi, '<strong>Notas de fondo:</strong>')
+    .replace(/ ?Notas de salida:/gi, '<br><br><strong>Notas de salida:</strong>')
+    .replace(/ ?Notas de corazón:/gi, '<br><strong>Notas de corazón:</strong>')
+    .replace(/ ?Notas de fondo:/gi, '<br><strong>Notas de fondo:</strong>')
 }</div>` : ''}
 
         <p class="precio-lista">${formatMoney(p.venta)}</p>
