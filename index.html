@@ -1174,6 +1174,15 @@
           <strong id="stat-gastos-total">RD$ 0</strong>
         </div>
         <div class="stat-card">
+  <small>Ganancia neta</small>
+  <strong id="stat-ganancia-neta">RD$ 0</strong>
+</div>
+
+<div class="stat-card">
+  <small>Margen neto</small>
+  <strong id="stat-margen-neto">0%</strong>
+</div>
+        <div class="stat-card">
   <small>Saldo inicial del negocio</small>
   <strong id="stat-saldo-inicial">RD$ 0</strong>
 </div>
@@ -1457,6 +1466,7 @@ Etiqueta del producto
           <button class="btn-mini btn-excel" onclick="exportarAExcel()">📊 Exportar inventario</button>
           <button class="btn-mini btn-excel" onclick="exportarVentasAExcel()">🧾 Exportar salidas</button>
           <button class="btn-mini btn-excel" onclick="exportarGastosAExcel()">💸 Exportar gastos</button>
+          <button class="btn-mini btn-excel" onclick="exportarResumenNegocioAExcel()">📈 Exportar resumen</button>
         </div>
       </div>
 
@@ -2706,6 +2716,8 @@ const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
 const totalAjustes = ajustes.reduce((acc, a) => acc + (Number(a.monto) || 0), 0);
 const balanceActual = saldoInicial + totalAjustes + ingresoTotalVentas - totalGastos;
 const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
+const gananciaNeta = gananciaReal - totalGastos;
+const margenNeto = ingresoTotalVentas > 0 ? (gananciaNeta / ingresoTotalVentas) * 100 : 0;
       const byMargen = [...productos]
         .map(p => ({
           ...p,
@@ -2729,6 +2741,8 @@ const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 
       setText('stat-bajo-stock', bajoStock);
       setText('stat-agotados', agotados);
       setText('stat-gastos-total', formatMoney(totalGastos));
+      setText('stat-ganancia-neta', formatMoney(gananciaNeta));
+      setText('stat-margen-neto', `${margenNeto.toFixed(2)}%`);
       setText('stat-saldo-inicial', formatMoney(saldoInicial));
       setText('stat-balance-actual', formatMoney(balanceActual));
 
@@ -4216,6 +4230,71 @@ if (etiquetaSelect) etiquetaSelect.value = p.etiqueta || "";
       XLSX.utils.book_append_sheet(wb, ws, "Gastos");
       XLSX.writeFile(wb, "H-Essence_Gastos.xlsx");
     }
+    function exportarResumenNegocioAExcel() {
+  const productos = Array.isArray(db.productos) ? db.productos : [];
+  const ventas = Array.isArray(db.ventasHistorial) ? db.ventasHistorial : [];
+  const gastos = Array.isArray(db.gastos) ? db.gastos : [];
+  const ajustes = Array.isArray(db.ajustesBalance) ? db.ajustesBalance : [];
+
+  let totalProductos = productos.length;
+  let totalUnidades = 0;
+  let capital = 0;
+  let ventaTotal = 0;
+  let gananciaTotal = 0;
+  let bajoStock = 0;
+  let agotados = 0;
+
+  productos.forEach(p => {
+    const stock = Number(p.stock) || 0;
+    const costo = Number(p.costo) || 0;
+    const venta = Number(p.venta) || 0;
+    const stockMin = Number(p.stockMinimo) || 0;
+
+    totalUnidades += stock;
+    capital += costo * stock;
+    ventaTotal += venta * stock;
+    gananciaTotal += (venta - costo) * stock;
+
+    if (p.dispo !== "pedido") {
+      if (stock <= 0) agotados++;
+      else if (stock <= stockMin) bajoStock++;
+    }
+  });
+
+  const gananciaReal = ventas.reduce((acc, v) => acc + (Number(v.ganancia) || 0), 0);
+  const ingresoTotalVentas = ventas.reduce((acc, v) => acc + (Number(v.ingreso) || 0), 0);
+  const totalGastos = gastos.reduce((acc, g) => acc + (Number(g.monto) || 0), 0);
+  const saldoInicial = Number(db.saldoInicial || 0);
+  const totalAjustes = ajustes.reduce((acc, a) => acc + (Number(a.monto) || 0), 0);
+  const balanceActual = saldoInicial + totalAjustes + ingresoTotalVentas - totalGastos;
+
+  const margenPromedio = ventaTotal > 0 ? ((ventaTotal - capital) / ventaTotal) * 100 : 0;
+  const gananciaNeta = gananciaReal - totalGastos;
+  const margenNeto = ingresoTotalVentas > 0 ? (gananciaNeta / ingresoTotalVentas) * 100 : 0;
+
+  const data = [
+    { Indicador: "Productos", Valor: totalProductos },
+    { Indicador: "Unidades en stock", Valor: totalUnidades },
+    { Indicador: "Capital invertido", Valor: capital },
+    { Indicador: "Valor total de venta", Valor: ventaTotal },
+    { Indicador: "Ganancia potencial", Valor: gananciaTotal },
+    { Indicador: "Margen promedio %", Valor: Number(margenPromedio.toFixed(2)) },
+    { Indicador: "Ganancia total de ventas", Valor: gananciaReal },
+    { Indicador: "Gastos operativos", Valor: totalGastos },
+    { Indicador: "Ganancia neta", Valor: gananciaNeta },
+    { Indicador: "Margen neto %", Valor: Number(margenNeto.toFixed(2)) },
+    { Indicador: "Saldo inicial del negocio", Valor: saldoInicial },
+    { Indicador: "Ajustes manuales", Valor: totalAjustes },
+    { Indicador: "Balance actual del negocio", Valor: balanceActual },
+    { Indicador: "Productos bajo stock", Valor: bajoStock },
+    { Indicador: "Productos agotados", Valor: agotados }
+  ];
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Resumen");
+  XLSX.writeFile(wb, "H-Essence_Resumen_Negocio.xlsx");
+}
 
     function exportarFacturasAExcel() {
   const facturas = Array.isArray(db.facturas) ? db.facturas : [];
@@ -5777,6 +5856,7 @@ async function eliminarFactura(id) {
     window.exportarAExcel = exportarAExcel;
     window.exportarVentasAExcel = exportarVentasAExcel;
     window.exportarGastosAExcel = exportarGastosAExcel;
+    window.exportarResumenNegocioAExcel = exportarResumenNegocioAExcel;
     window.exportarFacturasAExcel = exportarFacturasAExcel;
     window.subirLogo = subirLogo;
     window.handleFile = handleFile;
